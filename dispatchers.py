@@ -39,5 +39,27 @@ def clskey_singledispatcher(key):
     return decorator
     
 
+def key_singledispatcher(mainfunc):
+    _registry = ODict()
+    
+    def update(regfunc, *keys): _registry.update({key:regfunc for key in keys})
+    def registry(): return _registry
+    
+    def register(*keys): 
+        def register_decorator(regfunc): 
+            update(regfunc, *keys) 
+            def register_wrapper(*args, **kwargs): 
+                return regfunc(*args, **kwargs) 
+            return register_wrapper 
+        return register_decorator 
 
+    def wrapper(key, *args, **kwargs): 
+        func = _registry.get(key, mainfunc)
+        if key in _registry.keys(): return func(*args, **kwargs)         
+        else: return func(key, *args, **kwargs)
+
+    wrapper.register = register 
+    wrapper.registry = registry
+    update_wrapper(wrapper, mainfunc)
+    return wrapper
 

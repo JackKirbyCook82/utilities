@@ -8,6 +8,9 @@ Created on Fri Jun 22 2018
 
 import os.path
 import pandas as pd
+from bs4 import BeautifulSoup as bs
+
+from utilities.dispatchers import key_singledispatcher as keydispatcher
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
@@ -36,6 +39,52 @@ def dataframe_parser(dataframe, parsers={}, default=None):
             if default: dataframe.loc[:, column] = dataframe.loc[:, column].apply(default)
     return dataframe
   
+
+@keydispatcher
+def dataframe_fromdata(datatype, data): raise KeyError(datatype)
+
+@dataframe_fromdata.register('json')
+def _dataframe_fromjsondata(data, header=None, forceframe=True): 
+    if header is None: dataframe = pd.DataFrame(data)
+    else: 
+        columns = data.pop(header)
+        dataframe = pd.DataFrame(data, columns=columns)
+    return _forceframe(dataframe) if forceframe else dataframe
+
+@dataframe_fromdata.register('html')
+def _dataframe_fromhtmldata(data, tablenum=0, header=None, htmlparser='lxml', forceframe=True):
+    soup = bs(data, htmlparser)
+    dataframe = pd.read_html(str(soup.find_all('table')), flavor=htmlparser, header=header)[tablenum]
+    return _forceframe(dataframe) if forceframe else dataframe
+    
+@dataframe_fromdata.register('csv')
+def _dataframe_fromcsvdata(data, header=None, forceframe=True):
+    if data.endswith('\n'): data = data[:-2]
+    data = [data.split(',') for data in data.split('\n')]        
+    if header is None: dataframe = pd.DataFrame(data) 
+    else: 
+        cols = data.pop(header) 
+        dataframe =  pd.DataFrame(data, columns=cols) 
+    return _forceframe(dataframe) if forceframe else dataframe
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
