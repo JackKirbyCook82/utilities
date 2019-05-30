@@ -23,15 +23,28 @@ _forceframe = lambda table: table.to_frame() if not isinstance(table, pd.DataFra
 
 
 def dataframe_fromfile(file, index=None, header=0, forceframe=True):
-    if not os.path.isfile(file): raise FileNotFoundError(file)
-    dataframe = pd.read_csv(file, index_col=index, header=header).dropna(axis=0, how='all') 
+    try: 
+        dataframe = pd.read_csv(file, index_col=index, header=header).dropna(axis=0, how='all') 
+        print('File Loading Success:')
+        print(str(file), '\n')                
+    except Exception as error:
+        print('File Loading Failure:')
+        print(str(file), '\n')                  
+        raise error 
     return _forceframe(dataframe) if forceframe else dataframe
 
 
 def dataframe_tofile(file, dataframe, index=True, header=True): 
-    return dataframe.to_csv(file, index=index, header=header)
-
-
+    try: 
+        dataframe.to_csv(file, index=index, header=header)
+        print('File Saving Success:')
+        print(str(file), '\n')                
+    except Exception as error:
+        print('File Saving Failure:')
+        print(str(file), '\n')                  
+        raise error     
+    
+    
 def dataframe_parser(dataframe, parsers={}, default=None):
     for column in dataframe.columns:
         try: dataframe.loc[:, column] = dataframe.loc[:, column].apply(parsers[column])
