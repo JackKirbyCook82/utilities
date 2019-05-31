@@ -6,7 +6,6 @@ Created on Fri Jun 22 2018
 
 """
 
-import os.path
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 
