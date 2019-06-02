@@ -16,7 +16,7 @@ __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
 
-_aslist = lambda values: [values] if not isinstance(values, (list, tuple)) else values
+_aslist = lambda items: [item for item in items] if hasattr(items, '__iter__') and not isinstance(items, str) else [items]
 
 
 def concat_arguments(items, arg_delimiter, kw_delimiter):
