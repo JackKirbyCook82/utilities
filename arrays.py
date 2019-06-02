@@ -22,11 +22,10 @@ __license__ = ""
 def xarray_fromdata(datatype, data): raise KeyError(datatype)
 
 @xarray_fromdata.register('dataframe')
-def _xarray_fromdataframe(data, key): 
+def _xarray_fromdataframe(data, datakey): 
     uniquevalues = lambda column: list(set(data[column].values))
     scope = {column:uniquevalues(column)[0] for column in data.columns if len(uniquevalues(column)) == 1}
-    headers = {column:uniquevalues(column) for column in data.columns if all([column not in scope, column != key])}
-    data = data[[key, *headers]].set_index(list(headers.keys()), drop=True)
-    xarray = xr.Dataset.from_dataframe(data)
+    headers = {column:uniquevalues(column) for column in data.columns if all([column not in scope, column != datakey])}
+    xarray = xr.Dataset.from_dataframe(data[[datakey, *headers]].set_index(list(headers.keys()), drop=True))
     xarray.attrs = ODict([(key, value) for key, value in scope.items()])
     return xarray
