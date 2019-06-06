@@ -15,7 +15,7 @@ from utilities.dispatchers import key_singledispatcher as keydispatcher
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['array_fromdata', 'interpolate1D', 'interpolate2D', 'normalize', 'standardize', 'minmax', 'scale', 'cumulate', 'average', 'mean']
+__all__ = ['array_fromdata', 'apply_toarray', 'interpolate1D', 'interpolate2D', 'normalize', 'standardize', 'minmax', 'scale', 'cumulate', 'average', 'mean']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
@@ -25,6 +25,7 @@ def _uniquevalues(items):
     return [item for item in items if not (item in seen or seen.add(item))]
 
 
+# FACTORY
 @keydispatcher
 def array_fromdata(datatype, data): raise KeyError(datatype)
 
@@ -36,13 +37,9 @@ def _array_fromdataframe(data, datakey):
     xarray = xr.DataArray(data.values, coords=headers, dims=list(headers.keys()), attrs=scope)
     return xarray
 
-
-def interpolate1D(array, header, values, *args, invert=False, kind='linear', fill='extrapolate', **kwargs): 
-    if not invert: return interp1d(header, array, fill_value=fill, kind=kind)(values)
-    else: return interp1d(array, header, fill_value=fill, kind=kind)(values) 
-
-def interpolate2D(array, xheader, yheader, xvalues, yvalues, *args, fill='extrapolate', kind='linear', dx=0, dy=0, **kwargs):
-    return interp2d(xheader, yheader, array, fill_value=fill, kind=kind)(xvalues, yvalues, dx=dx, dy=dy)
+def apply_toarray(xarray, function, *args, axis, **kwargs):
+    kwargs={'axis':-1, **kwargs}
+    return xr.apply_ufunc(function, xarray, *args, input_core_dims=[[axis]], output_core_dims=[[axis]], vectorize=True, keep_attrs=True, **kwargs)
 
 
 # BROADCASTING
@@ -52,6 +49,13 @@ def minmax(array, *args, **kwargs): return np.vectorize(lambda item: (item - np.
 def scale(array, *args, scale, **kwargs): return {'normalize': normalize, 'standardize': standardize, 'minmax': minmax}(array)
 
 def cumulate(array, *args, direction='lower', **kwargs): return {'lower': lambda x: np.cumsum(x), 'upper': lambda x: np.flip(np.cumsum(np.flip(x, 0)), 0)}[direction](array)
+
+def interpolate1D(array, header, values, *args, invert=False, kind='linear', fill='extrapolate', **kwargs): 
+    if not invert: return interp1d(header, array, fill_value=fill, kind=kind)(values)
+    else: return interp1d(array, header, fill_value=fill, kind=kind)(values) 
+
+def interpolate2D(array, xheader, yheader, xvalues, yvalues, *args, fill='extrapolate', kind='linear', dx=0, dy=0, **kwargs):
+    return interp2d(xheader, yheader, array, fill_value=fill, kind=kind)(xvalues, yvalues, dx=dx, dy=dy)
 
 
 # REDUCTIONS

@@ -21,37 +21,7 @@ __license__ = ""
 _forceframe = lambda table: table.to_frame() if not isinstance(table, pd.DataFrame) else table
 
 
-def dataframe_fromfile(file, index=None, header=0, forceframe=True):
-    try: 
-        dataframe = pd.read_csv(file, index_col=index, header=header).dropna(axis=0, how='all') 
-        print('File Loading Success:')
-        print(str(file), '\n')                
-    except Exception as error:
-        print('File Loading Failure:')
-        print(str(file), '\n')                  
-        raise error 
-    return _forceframe(dataframe) if forceframe else dataframe
-
-
-def dataframe_tofile(file, dataframe, index=True, header=True): 
-    try: 
-        dataframe.to_csv(file, index=index, header=header)
-        print('File Saving Success:')
-        print(str(file), '\n')                
-    except Exception as error:
-        print('File Saving Failure:')
-        print(str(file), '\n')                  
-        raise error     
-    
-    
-def dataframe_parser(dataframe, parsers={}, default=None):
-    for column in dataframe.columns:
-        try: dataframe.loc[:, column] = dataframe.loc[:, column].apply(parsers[column])
-        except KeyError: 
-            if default: dataframe.loc[:, column] = dataframe.loc[:, column].apply(default)
-    return dataframe
-  
-
+# FACTORY
 @keydispatcher
 def dataframe_fromdata(datatype, data): raise KeyError(datatype)
 
@@ -78,6 +48,39 @@ def _dataframe_fromcsv(data, header=None, forceframe=True):
         cols = data.pop(header) 
         dataframe =  pd.DataFrame(data, columns=cols) 
     return _forceframe(dataframe) if forceframe else dataframe
+
+
+# FILE
+def dataframe_tofile(file, dataframe, index=True, header=True): 
+    try: 
+        dataframe.to_csv(file, index=index, header=header)
+        print('File Saving Success:')
+        print(str(file), '\n')                
+    except Exception as error:
+        print('File Saving Failure:')
+        print(str(file), '\n')                  
+        raise error     
+    
+def dataframe_fromfile(file, index=None, header=0, forceframe=True):
+    try: 
+        dataframe = pd.read_csv(file, index_col=index, header=header).dropna(axis=0, how='all') 
+        print('File Loading Success:')
+        print(str(file), '\n')                
+    except Exception as error:
+        print('File Loading Failure:')
+        print(str(file), '\n')                  
+        raise error 
+    return _forceframe(dataframe) if forceframe else dataframe    
+
+
+def dataframe_parser(dataframe, parsers={}, default=None):
+    for column in dataframe.columns:
+        try: dataframe.loc[:, column] = dataframe.loc[:, column].apply(parsers[column])
+        except KeyError: 
+            if default: dataframe.loc[:, column] = dataframe.loc[:, column].apply(default)
+    return dataframe
+  
+
 
 
 
