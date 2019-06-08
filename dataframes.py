@@ -7,6 +7,7 @@ Created on Fri Jun 22 2018
 """
 
 import pandas as pd
+import numpy as np
 from bs4 import BeautifulSoup as bs
 
 from utilities.dispatchers import key_singledispatcher as keydispatcher
@@ -53,6 +54,7 @@ def _dataframe_fromcsv(data, header=None, forceframe=True):
 # FILE
 def dataframe_tofile(file, dataframe, index=True, header=True): 
     try: 
+        dataframe = dataframe.replace(np.nan, '', regex=True)
         dataframe.to_csv(file, index=index, header=header)
         print('File Saving Success:')
         print(str(file), '\n')                
@@ -62,7 +64,7 @@ def dataframe_tofile(file, dataframe, index=True, header=True):
         raise error     
     
 def dataframe_fromfile(file, index=None, header=0, forceframe=True):
-    try: 
+    try:         
         dataframe = pd.read_csv(file, index_col=index, header=header).dropna(axis=0, how='all') 
         print('File Loading Success:')
         print(str(file), '\n')                
