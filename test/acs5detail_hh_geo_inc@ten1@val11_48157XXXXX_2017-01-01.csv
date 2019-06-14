@@ -1,0 +1,43 @@
+income,households,geography,date,tenure,value
+<$10K US,13,state=48 & county=157 & subdivision=92915,2017-01-01,Owner,$100K US - $200K US
+<$10K US,409,state=48 & county=157 & subdivision=93715,2017-01-01,Owner,$100K US - $200K US
+<$10K US,677,state=48 & county=157 & subdivision=93780,2017-01-01,Owner,$100K US - $200K US
+<$10K US,11,state=48 & county=157 & subdivision=92715,2017-01-01,Owner,$100K US - $200K US
+<$10K US,227,state=48 & county=157 & subdivision=93337,2017-01-01,Owner,$100K US - $200K US
+<$10K US,9,state=48 & county=157 & subdivision=91415,2017-01-01,Owner,$100K US - $200K US
+$10K US-$20K US,27,state=48 & county=157 & subdivision=92915,2017-01-01,Owner,$100K US - $200K US
+$10K US-$20K US,392,state=48 & county=157 & subdivision=93715,2017-01-01,Owner,$100K US - $200K US
+$10K US-$20K US,1036,state=48 & county=157 & subdivision=93780,2017-01-01,Owner,$100K US - $200K US
+$10K US-$20K US,87,state=48 & county=157 & subdivision=92715,2017-01-01,Owner,$100K US - $200K US
+$10K US-$20K US,267,state=48 & county=157 & subdivision=93337,2017-01-01,Owner,$100K US - $200K US
+$10K US-$20K US,90,state=48 & county=157 & subdivision=91415,2017-01-01,Owner,$100K US - $200K US
+$20K US-$35K US,24,state=48 & county=157 & subdivision=92915,2017-01-01,Owner,$100K US - $200K US
+$20K US-$35K US,1358,state=48 & county=157 & subdivision=93715,2017-01-01,Owner,$100K US - $200K US
+$20K US-$35K US,2243,state=48 & county=157 & subdivision=93780,2017-01-01,Owner,$100K US - $200K US
+$20K US-$35K US,129,state=48 & county=157 & subdivision=92715,2017-01-01,Owner,$100K US - $200K US
+$20K US-$35K US,580,state=48 & county=157 & subdivision=93337,2017-01-01,Owner,$100K US - $200K US
+$20K US-$35K US,241,state=48 & county=157 & subdivision=91415,2017-01-01,Owner,$100K US - $200K US
+$35K US-$50K US,74,state=48 & county=157 & subdivision=92915,2017-01-01,Owner,$100K US - $200K US
+$35K US-$50K US,1785,state=48 & county=157 & subdivision=93715,2017-01-01,Owner,$100K US - $200K US
+$35K US-$50K US,2388,state=48 & county=157 & subdivision=93780,2017-01-01,Owner,$100K US - $200K US
+$35K US-$50K US,140,state=48 & county=157 & subdivision=92715,2017-01-01,Owner,$100K US - $200K US
+$35K US-$50K US,708,state=48 & county=157 & subdivision=93337,2017-01-01,Owner,$100K US - $200K US
+$35K US-$50K US,563,state=48 & county=157 & subdivision=91415,2017-01-01,Owner,$100K US - $200K US
+$50K US-$75K US,19,state=48 & county=157 & subdivision=92915,2017-01-01,Owner,$100K US - $200K US
+$50K US-$75K US,4149,state=48 & county=157 & subdivision=93715,2017-01-01,Owner,$100K US - $200K US
+$50K US-$75K US,4647,state=48 & county=157 & subdivision=93780,2017-01-01,Owner,$100K US - $200K US
+$50K US-$75K US,225,state=48 & county=157 & subdivision=92715,2017-01-01,Owner,$100K US - $200K US
+$50K US-$75K US,1883,state=48 & county=157 & subdivision=93337,2017-01-01,Owner,$100K US - $200K US
+$50K US-$75K US,692,state=48 & county=157 & subdivision=91415,2017-01-01,Owner,$100K US - $200K US
+$75K US-$100K US,50,state=48 & county=157 & subdivision=92915,2017-01-01,Owner,$100K US - $200K US
+$75K US-$100K US,2856,state=48 & county=157 & subdivision=93715,2017-01-01,Owner,$100K US - $200K US
+$75K US-$100K US,3691,state=48 & county=157 & subdivision=93780,2017-01-01,Owner,$100K US - $200K US
+$75K US-$100K US,196,state=48 & county=157 & subdivision=92715,2017-01-01,Owner,$100K US - $200K US
+$75K US-$100K US,1149,state=48 & county=157 & subdivision=93337,2017-01-01,Owner,$100K US - $200K US
+$75K US-$100K US,866,state=48 & county=157 & subdivision=91415,2017-01-01,Owner,$100K US - $200K US
+>$100K US,48,state=48 & county=157 & subdivision=92915,2017-01-01,Owner,$100K US - $200K US
+>$100K US,5308,state=48 & county=157 & subdivision=93715,2017-01-01,Owner,$100K US - $200K US
+>$100K US,8502,state=48 & county=157 & subdivision=93780,2017-01-01,Owner,$100K US - $200K US
+>$100K US,385,state=48 & county=157 & subdivision=92715,2017-01-01,Owner,$100K US - $200K US
+>$100K US,2703,state=48 & county=157 & subdivision=93337,2017-01-01,Owner,$100K US - $200K US
+>$100K US,1244,state=48 & county=157 & subdivision=91415,2017-01-01,Owner,$100K US - $200K US
