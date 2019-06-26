@@ -13,7 +13,7 @@ from collections import OrderedDict as ODict
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
 __all__ = ['xarray_fromdataframe', 'summation', 'mean', 'stdev', 'minimum', 'maximum',
-           'normalize', 'standardize', 'minmax', 'scale', 'cumulate', 'interpolate']
+           'normalize', 'standardize', 'minmax', 'cumulate']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
@@ -31,6 +31,9 @@ def xarray_fromdataframe(data, *args, key, **kwargs):
     xarray = xr.DataArray(data.values, coords=headers, dims=list(headers.keys()), attrs=scope)
     return xarray
 
+def xarray_fromvalues(data, *args, axes, scope, **kwargs): 
+    return xr.DataArray(data, coords=axes, dims=list(axes.keys()), attrs=scope)
+
 
 # REDUCTIONS
 def summation(xarray, *args, axis, **kwargs): return xarray.sum(dim=axis, keep_attrs=True) 
@@ -38,10 +41,7 @@ def mean(xarray, *args, axis, **kwargs): return xarray.mean(dim=axis, keep_attrs
 def stdev(xarray, *args, axis, **kwargs): return xarray.std(dim=axis, keep_attrs=True) 
 def minimum(xarray, *args, axis, **kwargs): return xr.apply_ufunc(np.amin, xarray, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1})    
 def maximum(xarray, *args, axis, **kwargs): return xr.apply_ufunc(np.amax, xarray, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1})    
-
-#def average(xarray, *args, axis, weights=None, **kwargs):
-#    function = lambda x: np.average(x, axis=axis, weights=weights)
-#    return xr.apply_ufunc(function, xarray, input_core_dims=[[axis]], keep_attrs=True)
+def average(xarray, *args, axis, weights=None, **kwargs): return xarray.reduce(np.average, dim=axis, keep_attrs=None, weights=weights, **kwargs)
 
 
 # BROADCASTING
@@ -60,23 +60,15 @@ def minmax(xarray, *args, axis, **kwargs):
     xmin = minimum(xarray, *args, axis=axis, **kwargs)
     xmax = maximum(xarray, *args, axis=axis, **kwargs)
     function = lambda x, i, a: np.divide(np.subtract(x, i), np.subtract(a, i))
-    return xr.apply_ufunc(function, xarray, xmin, xmax, keep_attrs=True)
-    
-def scale(xarray, *args, method, axis, **kwargs):
-    return {'normalize':normalize, 'standardize':standardize, 'minmax':minmax}[method](xarray, *args, axis=axis, **kwargs)    
+    return xr.apply_ufunc(function, xarray, xmin, xmax, keep_attrs=True) 
 
 def cumulate(xarray, *args, axis, direction='lower', **kwargs): 
     if direction == 'lower': return xarray.cumsum(dim=axis, keep_attrs=True)
     elif direction == 'upper': return xarray[{axis:slice(None, None, -1)}].cumsum(dim=axis, keep_attrs=True)[{axis:slice(None, None, -1)}]
     else: raise ValueError(direction)    
     
-def interpolate(xarray, *args, values, axis, method='linear', fill='extrapolate', **kwargs):
+def interpolate(xarray, *args, values, axis, method, fill='extrapolate', **kwargs):
     return xarray.interp(**{axis:values}, method=method)
-
-#def inversion(xarray, *args, values, axis, method='linear', fill='extrapolate', **kwargs): 
-#    pass
-
-
 
 
 
