@@ -18,17 +18,19 @@ __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
 
+_aslist = lambda items: [items] if not isinstance(items, (list, tuple)) else list(items)
 def _uniquevalues(items): 
     seen = set()
     return [item for item in items if not (item in seen or seen.add(item))]
             
             
 # FACTORY
-def xarray_fromdataframe(data, *args, key, **kwargs): 
-    scope = ODict([(column, str(_uniquevalues(data[column])[0])) for column in data.columns if len(_uniquevalues(data[column])) == 1])
-    headers = ODict([(column, [str(item) for item in _uniquevalues(data[column])]) for column in data.columns if all([column not in scope, column != key])])
-    data = data[[key, *headers]].set_index(list(headers.keys()), drop=True).squeeze().to_xarray()    
-    xarray = xr.DataArray(data.values, coords=headers, dims=list(headers.keys()), attrs=scope)
+def xarray_fromdataframe(data, *args, datakey, headerkeys, scopekeys, **kwargs): 
+    assert all([len(_uniquevalues(data[item])) == 1 for item in _aslist(scopekeys)])
+    scope = ODict([(key, str(_uniquevalues(data[key])[0])) for key in _aslist(scopekeys)])
+    headers = ODict([(key, [str(item) for item in _uniquevalues(data[key])]) for key in _aslist(headerkeys)])
+    data = data[[datakey, *headers]].set_index(list(headers.keys()), drop=True).squeeze().to_xarray()    
+    xarray = xr.DataArray(data, coords=headers, dims=list(headers.keys()), attrs=scope)
     return xarray
 
 def xarray_fromvalues(data, *args, axes, scope, **kwargs): 

@@ -13,7 +13,7 @@ __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
 
-_UPPERCHARS = '/*+-_ |'
+_UPPERCHARS = '/*+-_ |('
 
 
 def uppercase(string, index=0, withops=False):

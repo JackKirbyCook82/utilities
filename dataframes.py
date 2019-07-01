@@ -6,13 +6,17 @@ Created on Fri Jun 22 2018
 
 """
 
+import os
 import pandas as pd
 import numpy as np
+import geopandas as gp
 from bs4 import BeautifulSoup as bs
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['dataframe_fromjson', 'dataframe_fromhtml', 'dataframe_fromcsv', 'dataframe_fromfile', 'dataframe_tofile', 'dataframe_parser']
+__all__ = ['dataframe_fromjson', 'dataframe_fromhtml', 'dataframe_fromcsv', 
+           'dataframe_fromfile', 'dataframe_tofile', 'dataframe_parser',
+           'geodataframe_fromdir', 'geodataframe_fromfile']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
@@ -42,12 +46,12 @@ def dataframe_fromcsv(data, header=None, forceframe=True):
         dataframe =  pd.DataFrame(data, columns=cols) 
     return _forceframe(dataframe) if forceframe else dataframe
 
-def dataframe_fromxarray(data, key):
-    series = data.to_series()
-    series.name = key
-    dataframe = series.to_frame().reset_index()
-    for key, value in data.attrs.items(): dataframe[key] = value
-    return dataframe
+#def dataframe_fromxarray(data, key):
+#    series = data.to_series()
+#    series.name = key
+#    dataframe = series.to_frame().reset_index()
+#    for key, value in data.attrs.items(): dataframe[key] = value
+#    return dataframe
 
 
 # FILE
@@ -72,6 +76,29 @@ def dataframe_fromfile(file, index=None, header=0, forceframe=True):
         print(str(file), '\n')                  
         raise error 
     return _forceframe(dataframe) if forceframe else dataframe    
+
+def geodataframe_fromdir(directory):
+    try:
+        for file in os.listdir(directory):
+            if file.endswith(".shp"): geodataframe = gp.read_file(os.path.join(directory, file))
+        print('File Loading Success:')
+        print(str(directory), '\n')   
+    except Exception as error:
+        print('File Loading Failure:')
+        print(str(directory), '\n')         
+        raise error
+    return geodataframe
+        
+def geodataframe_fromfile(file):
+    try:
+        geodataframe = gp.read_file(file)
+        print('File Loading Success:')
+        print(str(file), '\n')   
+    except Exception as error:
+        print('File Loading Failure:')
+        print(str(file), '\n')         
+        raise error
+    return geodataframe
 
 
 # CLEANERS
