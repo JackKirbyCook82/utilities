@@ -60,11 +60,7 @@ class SliceOrderedDict(ODict):
         added = [(key, value) for key, value in others.items()]
         return self.__class__(updated + added)
 
-
-
-
-
-
+    def __hash__(self): return hash(tuple([(key, value) for key, value in self.items()]))
 
 
 

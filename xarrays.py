@@ -12,25 +12,27 @@ from collections import OrderedDict as ODict
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['xarray_fromdataframe', 'summation', 'mean', 'stdev', 'minimum', 'maximum',
+__all__ = ['xarray_fromdataframe', 'summation', 'mean', 'stdev', 'minimum', 'maximum', 
            'normalize', 'standardize', 'minmax', 'cumulate']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
 
 _aslist = lambda items: [items] if not isinstance(items, (list, tuple)) else list(items)
-def _uniquevalues(items): 
-    seen = set()
-    return [item for item in items if not (item in seen or seen.add(item))]
-            
-            
+
+
 # FACTORY
 def xarray_fromdataframe(data, *args, datakey, headerkeys, scopekeys, **kwargs): 
-    assert all([len(_uniquevalues(data[item])) == 1 for item in _aslist(scopekeys)])
-    scope = ODict([(key, str(_uniquevalues(data[key])[0])) for key in _aslist(scopekeys)])
-    headers = ODict([(key, [str(item) for item in _uniquevalues(data[key])]) for key in _aslist(headerkeys)])
-    data = data[[datakey, *headers]].set_index(list(headers.keys()), drop=True).squeeze().to_xarray()    
-    xarray = xr.DataArray(data, coords=headers, dims=list(headers.keys()), attrs=scope)
+    headerkeys, scopekeys = [_aslist(item) for item in (headerkeys, scopekeys)]  
+    scope = ODict([(key, data[key].unique()) for key in scopekeys])
+    assert all([len(value) == 1 for value in scope.values()])
+    scope = ODict([(key, value[0]) for key, value in scope.items()])
+    data = data.set_index(headerkeys, drop=True)[datakey].squeeze()
+    try: xarray = xr.DataArray.from_series(data)
+    except: 
+        data = data.groupby(headerkeys).agg('sum')
+        xarray = xr.DataArray.from_series(data).fillna(0)
+    xarray.attrs = scope
     return xarray
 
 def xarray_fromvalues(data, *args, axes, scope, **kwargs): 

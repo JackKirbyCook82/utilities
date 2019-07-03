@@ -46,12 +46,11 @@ def dataframe_fromcsv(data, header=None, forceframe=True):
         dataframe =  pd.DataFrame(data, columns=cols) 
     return _forceframe(dataframe) if forceframe else dataframe
 
-#def dataframe_fromxarray(data, key):
-#    series = data.to_series()
-#    series.name = key
-#    dataframe = series.to_frame().reset_index()
-#    for key, value in data.attrs.items(): dataframe[key] = value
-#    return dataframe
+def dataframe_fromxarray(data):
+    series = data.to_series()
+    dataframe = series.to_frame().reset_index()
+    for key, value in data.attrs.items(): dataframe[key] = value
+    return dataframe
 
 
 # FILE
