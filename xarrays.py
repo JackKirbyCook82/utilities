@@ -13,7 +13,7 @@ from collections import OrderedDict as ODict
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
 __all__ = ['xarray_fromdataframe', 'summation', 'mean', 'stdev', 'minimum', 'maximum', 
-           'normalize', 'standardize', 'minmax', 'cumulate']
+           'normalize', 'standardize', 'minmax', 'cumulate', 'interpolate']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
