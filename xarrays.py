@@ -24,6 +24,8 @@ _aslist = lambda items: [items] if not isinstance(items, (list, tuple)) else lis
 # FACTORY
 def xarray_fromdataframe(data, *args, datakey, headerkeys, scopekeys, **kwargs): 
     headerkeys, scopekeys = [_aslist(item) for item in (headerkeys, scopekeys)]  
+    for headerkey in headerkeys: data[headerkey] = data[headerkey].apply(str)
+    for scopekey in scopekeys: data[scopekey] = data[scopekey].apply(str)
     scope = ODict([(key, data[key].unique()) for key in scopekeys])
     assert all([len(value) == 1 for value in scope.values()])
     scope = ODict([(key, value[0]) for key, value in scope.items()])

@@ -67,7 +67,7 @@ def dataframe_tofile(file, dataframe, index=True, header=True):
     
 def dataframe_fromfile(file, index=None, header=0, forceframe=True):
     try:         
-        dataframe = pd.read_csv(file, index_col=index, header=header).dropna(axis=0, how='all') 
+        dataframe = pd.read_csv(file, index_col=index, header=header).dropna(axis=0, how='all')
         print('File Loading Success:')
         print(str(file), '\n')                
     except Exception as error:
