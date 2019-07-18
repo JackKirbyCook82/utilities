@@ -68,12 +68,12 @@ def minmax(xarray, *args, axis, **kwargs):
     function = lambda x, i, a: np.divide(np.subtract(x, i), np.subtract(a, i))
     return xr.apply_ufunc(function, xarray, xmin, xmax, keep_attrs=True) 
 
-def cumulate(xarray, *args, axis, direction='lower', **kwargs): 
+def cumulate(xarray, *args, axis, direction, **kwargs): 
     if direction == 'lower': return xarray.cumsum(dim=axis, keep_attrs=True)
     elif direction == 'upper': return xarray[{axis:slice(None, None, -1)}].cumsum(dim=axis, keep_attrs=True)[{axis:slice(None, None, -1)}]
     else: raise ValueError(direction)    
     
-def interpolate(xarray, *args, values, axis, method, fill='extrapolate', **kwargs):
+def interpolate(xarray, *args, values, axis, method, fill, **kwargs):
     return xarray.interp(**{axis:values}, method=method)
 
 
