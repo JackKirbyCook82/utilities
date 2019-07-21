@@ -53,17 +53,23 @@ def curve(x, y, *args, method, fill={}, smoothing={}, **kwargs):
 
 
 # BROADCASTING
-def cumulate(narray, *args, axis, direction, **kwargs):
-    function = {'lower': lambda x: np.cumsum(x), 'upper': lambda x: np.flip(np.cumsum(np.flip(x, 0)), 0)}[direction]
-    return np.apply_along_axis(function, axis, narray)
+def inversion(narray, header, values, *args, index, **kwargs):
+    function = lambda x: curve(x, header, *args, **kwargs)(values)
+    return np.apply_along_axis(function, index, narray)    
 
 def interpolation(narray, header, values, *args, index, **kwargs):
     function = lambda y: curve(header, y, *args, **kwargs)(values)
     return np.apply_along_axis(function, index, narray)
 
-def inversion(narray, header, values, *args, index, **kwargs):
-    function = lambda x: curve(x, header, *args, **kwargs)(values)
-    return np.apply_along_axis(function, index, narray)
+def cumulate(narray, *args, axis, direction, **kwargs):
+    function = {'lower': lambda x: np.cumsum(x), 'upper': lambda x: np.flip(np.cumsum(np.flip(x, 0)), 0)}[direction]
+    return np.apply_along_axis(function, axis, narray)
+
+#def uncumulate(narray, *args, axis, direction, **kwargs): 
+#   pass
+
+
+
 
 
 

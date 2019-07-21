@@ -16,6 +16,8 @@ __license__ = ""
 
 
 class SliceOrderedDict(ODict):   
+    def __hash__(self): return hash(tuple([(key, value) for key, value in self.items()]))
+    
     def __getitem__(self, key): 
         if isinstance(key, str): return super().__getitem__(key)        
         elif isinstance(key, slice): return self.__readslice(key)
@@ -60,10 +62,7 @@ class SliceOrderedDict(ODict):
         added = [(key, value) for key, value in others.items()]
         return self.__class__(updated + added)
 
-    def __hash__(self): return hash(tuple([(key, value) for key, value in self.items()]))
-
-
-
+    
 
 
 

@@ -12,8 +12,7 @@ from collections import OrderedDict as ODict
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['xarray_fromdataframe', 'summation', 'mean', 'stdev', 'minimum', 'maximum', 
-           'normalize', 'standardize', 'minmax', 'cumulate', 'interpolate']
+__all__ = ['xarray_fromdataframe', 'summation', 'mean', 'stdev', 'minimum', 'maximum', 'normalize', 'standardize', 'minmax', 'cumulate', 'interpolate']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
@@ -24,8 +23,8 @@ _aslist = lambda items: [items] if not isinstance(items, (list, tuple)) else lis
 # FACTORY
 def xarray_fromdataframe(data, *args, datakey, headerkeys, scopekeys, **kwargs): 
     headerkeys, scopekeys = [_aslist(item) for item in (headerkeys, scopekeys)]  
-    for headerkey in headerkeys: data[headerkey] = data[headerkey].apply(str)
-    for scopekey in scopekeys: data[scopekey] = data[scopekey].apply(str)
+    for headerkey in headerkeys: data.loc[:, headerkey] = data[headerkey].apply(str)
+    for scopekey in scopekeys: data.loc[:, scopekey] = data[scopekey].apply(str)
     scope = ODict([(key, data[key].unique()) for key in scopekeys])
     assert all([len(value) == 1 for value in scope.values()])
     scope = ODict([(key, value[0]) for key, value in scope.items()])
@@ -68,13 +67,18 @@ def minmax(xarray, *args, axis, **kwargs):
     function = lambda x, i, a: np.divide(np.subtract(x, i), np.subtract(a, i))
     return xr.apply_ufunc(function, xarray, xmin, xmax, keep_attrs=True) 
 
+def interpolate(xarray, *args, values, axis, method, fill, **kwargs):
+    return xarray.interp(**{axis:values}, method=method)
+
 def cumulate(xarray, *args, axis, direction, **kwargs): 
     if direction == 'lower': return xarray.cumsum(dim=axis, keep_attrs=True)
     elif direction == 'upper': return xarray[{axis:slice(None, None, -1)}].cumsum(dim=axis, keep_attrs=True)[{axis:slice(None, None, -1)}]
     else: raise ValueError(direction)    
     
-def interpolate(xarray, *args, values, axis, method, fill, **kwargs):
-    return xarray.interp(**{axis:values}, method=method)
+#def uncumulate(xarray, *args, axis, direction, **kwargs): 
+#   pass
+    
+
 
 
 
