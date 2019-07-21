@@ -13,7 +13,7 @@ from utilities.dispatchers import keyword_singledispatcher as keyword_dispatcher
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['interpolation', 'inversion', 'cumulate']
+__all__ = ['interpolation', 'inversion', 'cumulate', 'uncumulate']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
@@ -61,12 +61,32 @@ def interpolation(narray, header, values, *args, index, **kwargs):
     function = lambda y: curve(header, y, *args, **kwargs)(values)
     return np.apply_along_axis(function, index, narray)
 
-def cumulate(narray, *args, axis, direction, **kwargs):
-    function = {'lower': lambda x: np.cumsum(x), 'upper': lambda x: np.flip(np.cumsum(np.flip(x, 0)), 0)}[direction]
-    return np.apply_along_axis(function, axis, narray)
 
-#def uncumulate(narray, *args, axis, direction, **kwargs): 
-#   pass
+# ROLLING
+def cumulate(narray, *args, index, direction, **kwargs):
+    function = {'lower': lambda x: np.cumsum(x), 'upper': lambda x: np.flip(np.cumsum(np.flip(x, 0)), 0)}[direction]
+    return np.apply_along_axis(function, index, narray)
+
+def uncumulate(narray, *args, index, direction, **kwargs): 
+    function = lambda x: [x[0]] + [x - y for x, y in zip(x[1:], x[:-1])]
+    function = {'lower': lambda x: function(x), 'upper': lambda x: function(x[::-1])[::-1]}[direction]
+    return np.apply_along_axis(function, index, narray)
+
+def movingaverage(narray, *args, index, period, **kwargs):
+    assert isinstance(period, int)
+    assert narray.shape[index] >= period 
+    function = lambda x: np.average(np.array([x[i:i+period] for i in range(0, len(x)-period+1)]), axis=1)    
+    return np.apply_along_axis(function, index, narray)
+
+def movingtotal(narray, *args, index, period, **kwargs):
+    assert isinstance(period, int)
+    assert narray.shape[index] >= period 
+    function = lambda x: np.sum(np.array([x[i:i+period] for i in range(0, len(x)-period+1)]), axis=1)    
+    return np.apply_along_axis(function, index, narray)
+
+
+
+
 
 
 

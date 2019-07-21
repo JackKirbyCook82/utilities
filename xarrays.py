@@ -12,7 +12,7 @@ from collections import OrderedDict as ODict
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['xarray_fromdataframe', 'summation', 'mean', 'stdev', 'minimum', 'maximum', 'normalize', 'standardize', 'minmax', 'cumulate', 'interpolate']
+__all__ = ['xarray_fromdataframe', 'summation', 'mean', 'stdev', 'minimum', 'maximum', 'normalize', 'standardize', 'minmax', 'cumulate', 'uncumulate', 'interpolate']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
@@ -70,13 +70,28 @@ def minmax(xarray, *args, axis, **kwargs):
 def interpolate(xarray, *args, values, axis, method, fill, **kwargs):
     return xarray.interp(**{axis:values}, method=method)
 
+# ROLLING
 def cumulate(xarray, *args, axis, direction, **kwargs): 
     if direction == 'lower': return xarray.cumsum(dim=axis, keep_attrs=True)
     elif direction == 'upper': return xarray[{axis:slice(None, None, -1)}].cumsum(dim=axis, keep_attrs=True)[{axis:slice(None, None, -1)}]
     else: raise ValueError(direction)    
     
-#def uncumulate(xarray, *args, axis, direction, **kwargs): 
-#   pass
+def uncumulate(xarray, *args, axis, direction, **kwargs): 
+    function = lambda x: [x[0]] + [x - y for x, y in zip(x[1:], x[:-1])]
+    function = {'lower': lambda x: function(x), 'upper': lambda x: function(x[::-1])[::-1]}[direction]
+    return xr.apply_ufunc(function, xarray, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1})  
+
+def movingaverage(xarray, *args, axis, period, **kwargs):
+    assert isinstance(period, int)
+    assert len(xarray.coords[axis].values) >= period
+    return xarray.rolling(**{axis:period}, center=True).mean().dropna(axis)
+
+def movingtotal(xarray, *args, axis, period, **kwargs):
+    assert isinstance(period, int)
+    assert len(xarray.coords[axis].values) >= period
+    return xarray.rolling(**{axis:period}, center=True).sum().dropna(axis)
+
+
     
 
 
