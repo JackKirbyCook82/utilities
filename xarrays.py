@@ -12,7 +12,7 @@ from collections import OrderedDict as ODict
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['xarray_fromdataframe', 'summation', 'mean', 'stdev', 'minimum', 'maximum', 'normalize', 'standardize', 'minmax', 'cumulate', 'uncumulate', 'interpolate']
+__all__ = []
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
@@ -46,7 +46,8 @@ def mean(xarray, *args, axis, **kwargs): return xarray.mean(dim=axis, keep_attrs
 def stdev(xarray, *args, axis, **kwargs): return xarray.std(dim=axis, keep_attrs=True) 
 def minimum(xarray, *args, axis, **kwargs): return xr.apply_ufunc(np.amin, xarray, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1})    
 def maximum(xarray, *args, axis, **kwargs): return xr.apply_ufunc(np.amax, xarray, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1})    
-def average(xarray, *args, axis, weights=None, **kwargs): return xarray.reduce(np.average, dim=axis, keep_attrs=None, weights=weights, **kwargs)
+def average(xarray, *args, axis, weights, **kwargs): return xarray.reduce(np.average, dim=axis, keep_attrs=None, weights=weights, **kwargs)
+def weightaverage(xarray, *args, axis, weights=None, **kwargs): return xarray.reduce(np.average, dim=axis, keep_attrs=None, weights=weights, **kwargs)
 
 
 # BROADCASTING
@@ -84,13 +85,16 @@ def uncumulate(xarray, *args, axis, direction, **kwargs):
 def movingaverage(xarray, *args, axis, period, **kwargs):
     assert isinstance(period, int)
     assert len(xarray.coords[axis].values) >= period
-    return xarray.rolling(**{axis:period}, center=True).mean().dropna(axis)
+    newxarray = xarray.rolling(**{axis:period+1}, center=True).mean().dropna(axis)
+    newxarray.attrs = xarray.attrs
+    return newxarray
 
 def movingtotal(xarray, *args, axis, period, **kwargs):
     assert isinstance(period, int)
     assert len(xarray.coords[axis].values) >= period
-    return xarray.rolling(**{axis:period}, center=True).sum().dropna(axis)
-
+    newxarray = xarray.rolling(**{axis:period+1}, center=True).sum().dropna(axis)
+    newxarray.attrs = xarray.attrs
+    return newxarray
 
     
 
