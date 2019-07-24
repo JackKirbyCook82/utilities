@@ -48,6 +48,7 @@ def dataframe_fromcsv(data, header=None, forceframe=True):
 
 def dataframe_fromxarray(data):
     series = data.to_series()
+    series.name = data.name
     dataframe = series.to_frame().reset_index()
     for key, value in data.attrs.items(): dataframe[key] = value
     return dataframe

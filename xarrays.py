@@ -9,6 +9,7 @@ Created on Sat Aug 11 2018
 import numpy as np
 import xarray as xr
 from collections import OrderedDict as ODict
+from functools import update_wrapper
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
@@ -34,55 +35,82 @@ def xarray_fromdataframe(data, *args, datakey, headerkeys, scopekeys, **kwargs):
         data = data.groupby(headerkeys).agg('sum')
         xarray = xr.DataArray.from_series(data).fillna(0)
     xarray.attrs = scope
+    xarray.name = datakey
     return xarray
 
-def xarray_fromvalues(data, *args, axes, scope, **kwargs): 
+def xarray_fromvalues(data, *args, name, axes, scope, **kwargs): 
     xarray = xr.DataArray(data, coords=axes, dims=list(axes.keys()), attrs=scope)
+    xarray.name = name
     return xarray
+
+
+# SUPPORT
+def xarray_keepattrs(function):
+    def wrapper(xarray, *args, **kwargs):
+        newxarray = function(xarray, *args, **kwargs)
+        newxarray.attrs = xarray.attrs
+        newxarray.name = xarray.name
+        return newxarray
+    update_wrapper(wrapper, function)
+    return wrapper
 
 
 # REDUCTIONS
+@xarray_keepattrs
 def summation(xarray, *args, axis, **kwargs): return xarray.sum(dim=axis, keep_attrs=True) 
+@xarray_keepattrs
 def mean(xarray, *args, axis, **kwargs): return xarray.mean(dim=axis, keep_attrs=True)  
+@xarray_keepattrs
 def stdev(xarray, *args, axis, **kwargs): return xarray.std(dim=axis, keep_attrs=True) 
+@xarray_keepattrs
 def minimum(xarray, *args, axis, **kwargs): return xr.apply_ufunc(np.amin, xarray, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1})    
+@xarray_keepattrs
 def maximum(xarray, *args, axis, **kwargs): return xr.apply_ufunc(np.amax, xarray, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1})    
+@xarray_keepattrs
 def average(xarray, *args, axis, weights, **kwargs): return xarray.reduce(np.average, dim=axis, keep_attrs=None, weights=weights, **kwargs)
+@xarray_keepattrs
 def weightaverage(xarray, *args, axis, weights=None, **kwargs): return xarray.reduce(np.average, dim=axis, keep_attrs=None, weights=weights, **kwargs)
 
 
 # BROADCASTING
+@xarray_keepattrs
 def normalize(xarray, *args, axis, **kwargs):
     xtotal = summation(xarray, *args, axis=axis, **kwargs)
     function = lambda x, t: np.divide(x, t)
     return xr.apply_ufunc(function, xarray, xtotal, keep_attrs=True)
 
+@xarray_keepattrs
 def standardize(xarray, *args, axis, **kwargs):
     xmean = mean(xarray, *args, axis=axis, **kwargs)
     xstd = stdev(xarray, *args, axis=axis, **kwargs)
     function = lambda x, m, s: np.divide(np.subtract(x, m), s)
     return xr.apply_ufunc(function, xarray, xmean, xstd, keep_attrs=True)
 
+@xarray_keepattrs
 def minmax(xarray, *args, axis, **kwargs):
     xmin = minimum(xarray, *args, axis=axis, **kwargs)
     xmax = maximum(xarray, *args, axis=axis, **kwargs)
     function = lambda x, i, a: np.divide(np.subtract(x, i), np.subtract(a, i))
     return xr.apply_ufunc(function, xarray, xmin, xmax, keep_attrs=True) 
 
+@xarray_keepattrs
 def interpolate(xarray, *args, values, axis, how, fill, **kwargs):
     return xarray.interp(**{axis:values}, how=how)
 
 # ROLLING
+@xarray_keepattrs
 def cumulate(xarray, *args, axis, direction, **kwargs): 
     if direction == 'lower': return xarray.cumsum(dim=axis, keep_attrs=True)
     elif direction == 'upper': return xarray[{axis:slice(None, None, -1)}].cumsum(dim=axis, keep_attrs=True)[{axis:slice(None, None, -1)}]
     else: raise ValueError(direction)    
 
+@xarray_keepattrs
 def uncumulate(xarray, *args, axis, direction, **kwargs): 
     function = lambda x: [x[0]] + [x - y for x, y in zip(x[1:], x[:-1])]
     function = {'lower': lambda x: function(x), 'upper': lambda x: function(x[::-1])[::-1]}[direction]
     return xr.apply_ufunc(function, xarray, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1})  
 
+@xarray_keepattrs
 def movingaverage(xarray, *args, axis, period, **kwargs):
     assert isinstance(period, int)
     assert len(xarray.coords[axis].values) >= period
@@ -90,6 +118,7 @@ def movingaverage(xarray, *args, axis, period, **kwargs):
     newxarray.attrs = xarray.attrs
     return newxarray
 
+@xarray_keepattrs
 def movingtotal(xarray, *args, axis, period, **kwargs):
     assert isinstance(period, int)
     assert len(xarray.coords[axis].values) >= period
