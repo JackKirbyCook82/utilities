@@ -37,7 +37,8 @@ def xarray_fromdataframe(data, *args, datakey, headerkeys, scopekeys, **kwargs):
     return xarray
 
 def xarray_fromvalues(data, *args, axes, scope, **kwargs): 
-    return xr.DataArray(data, coords=axes, dims=list(axes.keys()), attrs=scope)
+    xarray = xr.DataArray(data, coords=axes, dims=list(axes.keys()), attrs=scope)
+    return xarray
 
 
 # REDUCTIONS
@@ -68,15 +69,15 @@ def minmax(xarray, *args, axis, **kwargs):
     function = lambda x, i, a: np.divide(np.subtract(x, i), np.subtract(a, i))
     return xr.apply_ufunc(function, xarray, xmin, xmax, keep_attrs=True) 
 
-def interpolate(xarray, *args, values, axis, method, fill, **kwargs):
-    return xarray.interp(**{axis:values}, method=method)
+def interpolate(xarray, *args, values, axis, how, fill, **kwargs):
+    return xarray.interp(**{axis:values}, how=how)
 
 # ROLLING
 def cumulate(xarray, *args, axis, direction, **kwargs): 
     if direction == 'lower': return xarray.cumsum(dim=axis, keep_attrs=True)
     elif direction == 'upper': return xarray[{axis:slice(None, None, -1)}].cumsum(dim=axis, keep_attrs=True)[{axis:slice(None, None, -1)}]
     else: raise ValueError(direction)    
-    
+
 def uncumulate(xarray, *args, axis, direction, **kwargs): 
     function = lambda x: [x[0]] + [x - y for x, y in zip(x[1:], x[:-1])]
     function = {'lower': lambda x: function(x), 'upper': lambda x: function(x[::-1])[::-1]}[direction]
