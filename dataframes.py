@@ -9,14 +9,13 @@ Created on Fri Jun 22 2018
 import os
 import pandas as pd
 import numpy as np
+import xarray as xr
 import geopandas as gp
 from bs4 import BeautifulSoup as bs
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['dataframe_fromjson', 'dataframe_fromhtml', 'dataframe_fromcsv', 
-           'dataframe_fromfile', 'dataframe_tofile', 'dataframe_parser',
-           'geodataframe_fromdir', 'geodataframe_fromfile']
+__all__ = []
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
@@ -47,9 +46,13 @@ def dataframe_fromcsv(data, header=None, forceframe=True):
     return _forceframe(dataframe) if forceframe else dataframe
 
 def dataframe_fromxarray(data):
-    series = data.to_series()
-    series.name = data.name
-    dataframe = series.to_frame().reset_index()
+    if isinstance(data, xr.DataArray):
+        series = data.to_series()
+        series.name = data.name
+        dataframe = series.to_frame().reset_index()      
+    elif isinstance(data, xr.Dataset):
+        dataframe = data.to_dataframe().reset_index()
+    else: raise TypeError(data)
     for key, value in data.attrs.items(): dataframe[key] = value
     return dataframe
 

@@ -22,25 +22,37 @@ _aslist = lambda items: [items] if not isinstance(items, (list, tuple)) else lis
 
 
 # FACTORY
-def xarray_fromdataframe(data, *args, datakey, headerkeys, scopekeys, **kwargs): 
-    headerkeys, scopekeys = [_aslist(item) for item in (headerkeys, scopekeys)]  
-    for headerkey in headerkeys: data.loc[:, headerkey] = data[headerkey].apply(str)
-    for scopekey in scopekeys: data.loc[:, scopekey] = data[scopekey].apply(str)
+def xarray_fromdataframe(data, *args, axekeys, scopekeys, forcedataset=True, **kwargs):
+    axekeys, scopekeys = [_aslist(item) for item in (axekeys, scopekeys)]
+    for axis in axekeys: data.loc[:, axis] = data[axis].apply(str)
+    for key in scopekeys: data.loc[:, key] = data[key].apply(str)
     scope = ODict([(key, data[key].unique()) for key in scopekeys])
     assert all([len(value) == 1 for value in scope.values()])
     scope = ODict([(key, value[0]) for key, value in scope.items()])
-    data = data.set_index(headerkeys, drop=True)[datakey].squeeze()
-    try: xarray = xr.DataArray.from_series(data)
-    except: 
-        data = data.groupby(headerkeys).agg('sum')
-        xarray = xr.DataArray.from_series(data).fillna(0)
+    datakeys = [column for column in data.columns if column not in (*axekeys, *scopekeys)]
+    assert isinstance(datakeys, list)
+    data = data.set_index(axekeys, drop=True)[datakeys]
+    if len(datakeys) == 1 and not forcedataset:
+        try: xarray = xr.DataArray.from_series(data)
+        except: 
+            data = data.groupby(axekeys).agg('sum')
+            xarray = xr.DataArray.from_series(data).fillna(0)        
+            xarray.name = datakeys[0]
+    else:
+        try: xarray = xr.Dataset.from_dataframe(data)
+        except: 
+            data = data.groupby(axekeys).agg('sum')
+            xarray = xr.Dataset.from_dataframe(data).fillna(0)
     xarray.attrs = scope
-    xarray.name = datakey
     return xarray
 
-def xarray_fromvalues(data, *args, name, axes, scope, **kwargs): 
-    xarray = xr.DataArray(data, coords=axes, dims=list(axes.keys()), attrs=scope)
-    xarray.name = name
+def xarray_fromvalues(data, *args, axes, scope, forcedataset=True, **kwargs): 
+    assert all([isinstance(item, dict) for item in (data, axes, scope)])
+    assert all([isinstance(items, np.ndarray) for items in data.values()])
+    if len(data) == 1 and not forcedataset:
+        xarray = xr.DataArray(list(data.values())[0], coords=axes, dims=list(axes.keys()), attrs=scope)
+        xarray.name = list(data.keys())[0]  
+    else: xarray = xr.Dataset(data, coords=axes, dim=list(axes.keys()), attrs=scope)
     return xarray
 
 
@@ -49,7 +61,7 @@ def xarray_keepattrs(function):
     def wrapper(xarray, *args, **kwargs):
         newxarray = function(xarray, *args, **kwargs)
         newxarray.attrs = xarray.attrs
-        newxarray.name = xarray.name
+        if isinstance(newxarray, xr.DataArray): newxarray.name = xarray.name
         return newxarray
     update_wrapper(wrapper, function)
     return wrapper
