@@ -19,31 +19,35 @@ __license__ = ""
 
 
 _aslist = lambda items: [items] if not isinstance(items, (list, tuple)) else list(items)
+_aggregations = {'sum':np.sum, 'avg':np.mean, 'max':np.max, 'min':np.min}
 
 
 # FACTORY
-def xarray_fromdataframe(data, *args, axekeys, scopekeys, forcedataset=True, **kwargs):
-    axekeys, scopekeys = [_aslist(item) for item in (axekeys, scopekeys)]
+def xarray_fromdataframe(data, *args, datakeys, axekeys, attrkeys, aggs={}, fills={}, forcedataset=True, **kwargs):
+    assert all([isinstance(item, (str, tuple, list)) for item in (datakeys, axekeys, attrkeys)])
+    datakeys, axekeys, attrkeys = [_aslist(item) for item in (datakeys, axekeys, attrkeys)]    
+    assert all([key in data.columns for key in (*datakeys, *axekeys, *attrkeys)])        
+    assert all([len(set(data[key].values)) == 1 for key in attrkeys if key in data.columns])
+    
+    assert all([isinstance(item, dict) for item in (aggs, fills)])
+    fills = {key:value for key, value in fills.items() if key in datakeys}
+    aggs = {key:(_aggregations.get(value, value) if isinstance(value, str) else value) for key, value in aggs.items() if key in datakeys}
+    
     for axis in axekeys: data.loc[:, axis] = data[axis].apply(str)
-    for key in scopekeys: data.loc[:, key] = data[key].apply(str)
-    scope = ODict([(key, data[key].unique()) for key in scopekeys])
-    assert all([len(value) == 1 for value in scope.values()])
-    scope = ODict([(key, value[0]) for key, value in scope.items()])
-    datakeys = [column for column in data.columns if column not in (*axekeys, *scopekeys)]
-    assert isinstance(datakeys, list)
-    data = data.set_index(axekeys, drop=True)[datakeys]
+    for key in attrkeys: data.loc[:, key] = data[key].apply(str)
+    
+    attrs = ODict([(key, data[key].unique()) for key in attrkeys])
+    assert all([len(value) == 1 for value in attrs.values()])
+    attrs = ODict([(key, value[0]) for key, value in attrs.items()])   
+
+    data = data.set_index(axekeys, drop=True)[datakeys]    
+    if aggs: data = data.groupby(axekeys).agg(aggs)
+
     if len(datakeys) == 1 and not forcedataset:
-        try: xarray = xr.DataArray.from_series(data)
-        except: 
-            data = data.groupby(axekeys).agg('sum')
-            xarray = xr.DataArray.from_series(data).fillna(0)        
-            xarray.name = datakeys[0]
-    else:
-        try: xarray = xr.Dataset.from_dataframe(data)
-        except: 
-            data = data.groupby(axekeys).agg('sum')
-            xarray = xr.Dataset.from_dataframe(data).fillna(0)
-    xarray.attrs = scope
+        xarray = xr.DataArray.from_series(data).fillna(fills)     
+        xarray.name = datakeys[0]
+    else: xarray = xr.Dataset.from_dataframe(data).fillna(fills)
+    xarray.attrs = attrs
     return xarray
 
 def xarray_fromvalues(data, *args, axes, scope, forcedataset=True, **kwargs): 
@@ -118,9 +122,9 @@ def cumulate(xarray, *args, axis, direction, **kwargs):
 
 @xarray_keepattrs
 def uncumulate(xarray, *args, axis, direction, **kwargs): 
-    function = lambda x: [x[0]] + [x - y for x, y in zip(x[1:], x[:-1])]
-    function = {'lower': lambda x: function(x), 'upper': lambda x: function(x[::-1])[::-1]}[direction]
-    return xr.apply_ufunc(function, xarray, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1})  
+    subfunction = lambda x: [x[0]] + [x - y for x, y in zip(x[1:], x[:-1])]
+    function = {'lower': lambda x: subfunction(x), 'upper': lambda x: subfunction(x[::-1])[::-1]}[direction]
+    return xr.apply_ufunc(function, xarray, input_core_dims=[[axis]], output_core_dims=[[axis]], keep_attrs=True)  
 
 @xarray_keepattrs
 def movingaverage(xarray, *args, axis, period, **kwargs):
