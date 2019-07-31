@@ -41,14 +41,14 @@ def fillcurve(*args, **kwargs): return None
 def extrapolate_fillcurve(*args, **kwargs): 
     return 'extrapolate'
 
-@fillcurve.register('bounds')
+@fillcurve.register('bound')
 def bounds_fillcurve(*args, direction, boundarys, axis, **kwargs): 
-    return {'upper': boundarys[axis][::-1], 'lower': boundarys[axis][:]}[direction]
+    return {'upper': tuple(boundarys[axis][::-1]), 'lower': tuple(boundarys[axis][:])}[direction]
 
 
 def curve(x, y, *args, how, fill={}, smoothing={}, **kwargs): 
     x, y = smoothcurve(x, y, *args, **smoothing, **kwargs)
-    fillvalue = fillcurve(*args, **fill, **kwargs)
+    fillvalue = fillcurve(*args, **fill, **kwargs)    
     return interp1d(x, y, kind=how, fill_value=fillvalue, bounds_error=False if fillvalue else True)
 
 

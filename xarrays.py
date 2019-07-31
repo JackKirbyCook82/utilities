@@ -90,6 +90,11 @@ def weightaverage(xarray, *args, axis, weights=None, **kwargs): return xarray.re
 
 # BROADCASTING
 @xarray_keepattrs
+def factor(xarray, *args, how, factor, **kwargs):
+    functions = {'multiply': lambda x: np.multiply(x, factor), 'divide': lambda x: np.divide(x, factor)}
+    return xr.apply_ufunc(functions[how], xarray, keep_attrs=True)
+
+@xarray_keepattrs
 def normalize(xarray, *args, axis, **kwargs):
     xtotal = summation(xarray, *args, axis=axis, **kwargs)
     function = lambda x, t: np.divide(x, t)
