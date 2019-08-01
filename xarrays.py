@@ -10,6 +10,7 @@ import numpy as np
 import xarray as xr
 from collections import OrderedDict as ODict
 from functools import update_wrapper
+from numbers import Number
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
@@ -88,12 +89,20 @@ def average(xarray, *args, axis, weights, **kwargs): return xarray.reduce(np.ave
 def weightaverage(xarray, *args, axis, weights=None, **kwargs): return xarray.reduce(np.average, dim=axis, keep_attrs=None, weights=weights, **kwargs)
 
 
-# BROADCASTING
+# MAPPING
 @xarray_keepattrs
-def factor(xarray, *args, how, factor, **kwargs):
-    functions = {'multiply': lambda x: np.multiply(x, factor), 'divide': lambda x: np.divide(x, factor)}
-    return xr.apply_ufunc(functions[how], xarray, keep_attrs=True)
+def multiply(xarray, *args, factor, **kwargs):
+    assert isinstance(factor, Number)
+    function = lambda x: np.multiply(x, factor)
+    return xr.apply_ufunc(function, xarray, keep_attrs=True)
 
+@xarray_keepattrs
+def divide(xarray, *args, factor, **kwargs):
+    assert isinstance(factor, Number)
+    function = lambda x: np.divide(x, factor)
+    return xr.apply_ufunc(function, xarray, keep_attrs=True)
+
+# BROADCASTING
 @xarray_keepattrs
 def normalize(xarray, *args, axis, **kwargs):
     xtotal = summation(xarray, *args, axis=axis, **kwargs)

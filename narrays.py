@@ -23,7 +23,7 @@ __license__ = ""
 def smoothcurve(x, y, *args, **kwargs): return x, y
 
 @smoothcurve.register('cumulative')
-def cumulative_smoothcurve(x, y, *args, direction, tolerance=4, **kwargs):
+def cumulative_smoothcurve(x, y, *args, direction, tolerance=5, **kwargs):
     assert direction == 'lower' or direction == 'upper'
     assert len(x) == len(y)
     if direction == 'lower': x, y = x[::-1], y[::-1]
@@ -42,8 +42,8 @@ def extrapolate_fillcurve(*args, **kwargs):
     return 'extrapolate'
 
 @fillcurve.register('bound')
-def bounds_fillcurve(*args, direction, boundarys, axis, **kwargs): 
-    return {'upper': tuple(boundarys[axis][::-1]), 'lower': tuple(boundarys[axis][:])}[direction]
+def bounds_fillcurve(*args, direction, bounds, **kwargs): 
+    return {'upper': tuple(bounds[::-1]), 'lower': tuple(bounds[:])}[direction]
 
 
 def curve(x, y, *args, how, fill={}, smoothing={}, **kwargs): 
