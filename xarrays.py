@@ -91,16 +91,15 @@ def weightaverage(xarray, *args, axis, weights=None, **kwargs): return xarray.re
 
 # MAPPING
 @xarray_keepattrs
-def multiply(xarray, *args, factor, **kwargs):
+def multiply(xarray, *args, factor, **kwargs): 
     assert isinstance(factor, Number)
-    function = lambda x: np.multiply(x, factor)
-    return xr.apply_ufunc(function, xarray, keep_attrs=True)
+    return xarray * factor
 
 @xarray_keepattrs
-def divide(xarray, *args, factor, **kwargs):
-    assert isinstance(factor, Number)
-    function = lambda x: np.divide(x, factor)
-    return xr.apply_ufunc(function, xarray, keep_attrs=True)
+def divide(xarray, *args, factor, **kwargs): 
+    assert isinstance(factor, Number)    
+    return xarray / factor
+
 
 # BROADCASTING
 @xarray_keepattrs
