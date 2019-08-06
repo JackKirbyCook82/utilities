@@ -60,6 +60,12 @@ def xarray_fromvalues(data, *args, axes, scope, forcedataset=True, **kwargs):
     else: xarray = xr.Dataset(data, coords=axes, dim=list(axes.keys()), attrs=scope)
     return xarray
 
+def xarray_concat(dataarray, other, *args, onaxis, **kwargs):
+    assert dataarray.attrs == other.attrs
+    newdataarray = xr.concat([dataarray, other], dim=onaxis)
+    newdataarray.attrs = dataarray.attrs
+    return newdataarray
+
 
 # SUPPORT
 def xarray_keepattrs(function):
