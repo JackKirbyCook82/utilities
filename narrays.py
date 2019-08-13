@@ -13,7 +13,7 @@ from utilities.dispatchers import keyword_singledispatcher as keyword_dispatcher
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = []
+__all__ = ['curve', 'inversion', 'interpolation', 'cumulate', 'uncumulate', 'movingaverage', 'movingtotal']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 

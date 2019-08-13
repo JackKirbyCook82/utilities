@@ -14,7 +14,9 @@ from numbers import Number
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = []
+__all__ = ['xarray_fromdataframe', 'xarray_fromvalues', 'xarray_concat', 'summation', 'mean', 'stdev', 'minimum', 'maximum',
+           'average', 'weightaverage', 'multiply', 'divide', 'normalize', 'standardize', 'minmax', 'interpolate',
+           'cumulate', 'uncumulate', 'movingaverage', 'movingtotal']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
