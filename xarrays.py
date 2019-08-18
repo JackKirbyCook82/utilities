@@ -10,12 +10,11 @@ import numpy as np
 import xarray as xr
 from collections import OrderedDict as ODict
 from functools import update_wrapper
-from numbers import Number
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['xarray_fromdataframe', 'xarray_fromvalues', 'xarray_concat', 'summation', 'mean', 'stdev', 'minimum', 'maximum',
-           'average', 'weightaverage', 'multiply', 'divide', 'normalize', 'standardize', 'minmax', 'interpolate',
+__all__ = ['xarray_fromdataframe', 'xarray_fromvalues', 'summation', 'mean', 'stdev', 'minimum', 'maximum',
+           'average', 'weightaverage', 'normalize', 'standardize', 'minmax', 'interpolate',
            'cumulate', 'uncumulate', 'movingaverage', 'movingtotal']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
@@ -26,142 +25,126 @@ _aggregations = {'sum':np.sum, 'avg':np.mean, 'max':np.max, 'min':np.min}
 
 
 # FACTORY
-def xarray_fromdataframe(data, *args, datakeys, axekeys, attrkeys, aggs={}, fills={}, forcedataset=True, **kwargs):
-    assert all([isinstance(item, (str, tuple, list)) for item in (datakeys, axekeys, attrkeys)])
-    datakeys, axekeys, attrkeys = [_aslist(item) for item in (datakeys, axekeys, attrkeys)]    
-    assert all([key in data.columns for key in (*datakeys, *axekeys, *attrkeys)])        
-    assert all([len(set(data[key].values)) == 1 for key in attrkeys if key in data.columns])
-    
-    assert all([isinstance(item, dict) for item in (aggs, fills)])
-    fills = {key:value for key, value in fills.items() if key in datakeys}
-    aggs = {key:(_aggregations.get(value, value) if isinstance(value, str) else value) for key, value in aggs.items() if key in datakeys}
-    
-    for axis in axekeys: data.loc[:, axis] = data[axis].apply(str)
-    for key in attrkeys: data.loc[:, key] = data[key].apply(str)
-    
+def xarray_fromdataframe(data, *args, datakeys=[], datakey=None, aggs={}, fills={}, forcedataset=True, **kwargs):
+    datakeys = [key for key in [*_aslist(datakey), *_aslist(datakeys)] if key]
+    assert all([key in data.columns for key in datakeys])
+    dimkeys = [key for key in data.columns if key not in datakeys and len(set(data[key].values)) > 1]
+    attrkeys = [key for key in data.columns if key not in datakeys and len(set(data[key].values)) == 1]
+    dimkeys.sort(key=lambda key: len(set(data[key].values)))
+
+    for key in (*dimkeys, *attrkeys): data.loc[:, key] = data[key].apply(str)
+       
     attrs = ODict([(key, data[key].unique()) for key in attrkeys])
     assert all([len(value) == 1 for value in attrs.values()])
-    attrs = ODict([(key, value[0]) for key, value in attrs.items()])   
+    attrs = ODict([(key, value[0]) for key, value in attrs.items()])       
 
-    data = data.set_index(axekeys, drop=True)[datakeys]    
-    if aggs: data = data.groupby(axekeys).agg(aggs)
+    data = data.set_index(dimkeys, drop=True)[datakeys] 
+    aggs = {key:_aggregations[aggkey] for key, aggkey in aggs.items() if key in datakeys}
+    if aggs: data = data.groupby(dimkeys).agg(aggs, axis=1)
 
     if len(datakeys) == 1 and not forcedataset:
-        xarray = xr.DataArray.from_series(data).fillna(fills)     
-        xarray.name = datakeys[0]
-    else: xarray = xr.Dataset.from_dataframe(data).fillna(fills)
-    xarray.attrs = attrs
-    return xarray
+        dataarray = xr.DataArray.from_series(data).fillna(fills)     
+        dataarray.name = datakeys[0]
+        dataarray.attrs = attrs
+        return dataarray
+    else: 
+        dataset = xr.Dataset.from_dataframe(data).fillna(fills)
+        dataset.attrs = attrs
+        return dataset
+  
 
-def xarray_fromvalues(data, *args, axes, scope, forcedataset=True, **kwargs): 
-    assert all([isinstance(item, dict) for item in (data, axes, scope)])
+def xarray_fromvalues(data, *args, dims, attrs, forcedataset=True, **kwargs): 
+    assert all([isinstance(item, dict) for item in (data, dims, attrs)])
     assert all([isinstance(items, np.ndarray) for items in data.values()])
     if len(data) == 1 and not forcedataset:
-        xarray = xr.DataArray(list(data.values())[0], coords=axes, dims=list(axes.keys()), attrs=scope)
-        xarray.name = list(data.keys())[0]  
-    else: xarray = xr.Dataset(data, coords=axes, dim=list(axes.keys()), attrs=scope)
-    return xarray
-
-def xarray_concat(dataarray, other, *args, onaxis, **kwargs):
-    assert dataarray.attrs == other.attrs
-    newdataarray = xr.concat([dataarray, other], dim=onaxis)
-    newdataarray.attrs = dataarray.attrs
-    return newdataarray
+        dataarray = xr.DataArray(list(data.values())[0], coords=dims, dims=list(dims.keys()), attrs=attrs)
+        dataarray.name = list(data.keys())[0]  
+        return dataarray
+    else: 
+        dataset = xr.Dataset(data, coords=dims, dim=list(dims.keys()), attrs=attrs)
+        return dataset
 
 
 # SUPPORT
-def xarray_keepattrs(function):
-    def wrapper(xarray, *args, **kwargs):
-        newxarray = function(xarray, *args, **kwargs)
-        newxarray.attrs = xarray.attrs
-        if isinstance(newxarray, xr.DataArray): newxarray.name = xarray.name
-        return newxarray
+def dataarray_keepattrs(function):
+    def wrapper(dataarray, *args, **kwargs):
+        assert isinstance(dataarray, xr.DataArray)
+        newdataarray = function(dataarray, *args, **kwargs)
+        newdataarray.attrs = dataarray.attrs
+        newdataarray.name = dataarray.name
+        return newdataarray
     update_wrapper(wrapper, function)
     return wrapper
 
 
 # REDUCTIONS
-@xarray_keepattrs
-def summation(xarray, *args, axis, **kwargs): return xarray.sum(dim=axis, keep_attrs=True) 
-@xarray_keepattrs
-def mean(xarray, *args, axis, **kwargs): return xarray.mean(dim=axis, keep_attrs=True)  
-@xarray_keepattrs
-def stdev(xarray, *args, axis, **kwargs): return xarray.std(dim=axis, keep_attrs=True) 
-@xarray_keepattrs
-def minimum(xarray, *args, axis, **kwargs): return xr.apply_ufunc(np.amin, xarray, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1})    
-@xarray_keepattrs
-def maximum(xarray, *args, axis, **kwargs): return xr.apply_ufunc(np.amax, xarray, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1})    
-@xarray_keepattrs
-def average(xarray, *args, axis, weights, **kwargs): return xarray.reduce(np.average, dim=axis, keep_attrs=None, weights=weights, **kwargs)
-@xarray_keepattrs
-def weightaverage(xarray, *args, axis, weights=None, **kwargs): return xarray.reduce(np.average, dim=axis, keep_attrs=None, weights=weights, **kwargs)
-
-
-# MAPPING
-@xarray_keepattrs
-def multiply(xarray, *args, factor, **kwargs): 
-    assert isinstance(factor, Number)
-    return xarray * factor
-
-@xarray_keepattrs
-def divide(xarray, *args, factor, **kwargs): 
-    assert isinstance(factor, Number)    
-    return xarray / factor
+@dataarray_keepattrs
+def summation(dataarray, *args, axis, **kwargs): return dataarray.sum(dim=axis, keep_attrs=True) 
+@dataarray_keepattrs
+def mean(dataarray, *args, axis, **kwargs): return dataarray.mean(dim=axis, keep_attrs=True)  
+@dataarray_keepattrs
+def stdev(dataarray, *args, axis, **kwargs): return dataarray.std(dim=axis, keep_attrs=True) 
+@dataarray_keepattrs
+def minimum(dataarray, *args, axis, **kwargs): return xr.apply_ufunc(np.amin, dataarray, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1})    
+@dataarray_keepattrs
+def maximum(dataarray, *args, axis, **kwargs): return xr.apply_ufunc(np.amax, dataarray, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1})    
+@dataarray_keepattrs
+def average(dataarray, *args, axis, weights, **kwargs): return dataarray.reduce(np.average, dim=axis, keep_attrs=None, weights=weights, **kwargs)
+@dataarray_keepattrs
+def weightaverage(dataarray, *args, axis, weights=None, **kwargs): return dataarray.reduce(np.average, dim=axis, keep_attrs=None, weights=weights, **kwargs)
 
 
 # BROADCASTING
-@xarray_keepattrs
-def normalize(xarray, *args, axis, **kwargs):
-    xtotal = summation(xarray, *args, axis=axis, **kwargs)
+@dataarray_keepattrs
+def normalize(dataarray, *args, axis, **kwargs):
+    xtotal = summation(dataarray, *args, axis=axis, **kwargs)
     function = lambda x, t: np.divide(x, t)
-    return xr.apply_ufunc(function, xarray, xtotal, keep_attrs=True)
+    return xr.apply_ufunc(function, dataarray, xtotal, keep_attrs=True)
 
-@xarray_keepattrs
-def standardize(xarray, *args, axis, **kwargs):
-    xmean = mean(xarray, *args, axis=axis, **kwargs)
-    xstd = stdev(xarray, *args, axis=axis, **kwargs)
+@dataarray_keepattrs
+def standardize(dataarray, *args, axis, **kwargs):
+    xmean = mean(dataarray, *args, axis=axis, **kwargs)
+    xstd = stdev(dataarray, *args, axis=axis, **kwargs)
     function = lambda x, m, s: np.divide(np.subtract(x, m), s)
-    return xr.apply_ufunc(function, xarray, xmean, xstd, keep_attrs=True)
+    return xr.apply_ufunc(function, dataarray, xmean, xstd, keep_attrs=True)
 
-@xarray_keepattrs
-def minmax(xarray, *args, axis, **kwargs):
-    xmin = minimum(xarray, *args, axis=axis, **kwargs)
-    xmax = maximum(xarray, *args, axis=axis, **kwargs)
+@dataarray_keepattrs
+def minmax(dataarray, *args, axis, **kwargs):
+    xmin = minimum(dataarray, *args, axis=axis, **kwargs)
+    xmax = maximum(dataarray, *args, axis=axis, **kwargs)
     function = lambda x, i, a: np.divide(np.subtract(x, i), np.subtract(a, i))
-    return xr.apply_ufunc(function, xarray, xmin, xmax, keep_attrs=True) 
+    return xr.apply_ufunc(function, dataarray, xmin, xmax, keep_attrs=True) 
 
-@xarray_keepattrs
-def interpolate(xarray, *args, values, axis, how, fill, **kwargs):
-    return xarray.interp(**{axis:values}, how=how)
+@dataarray_keepattrs
+def interpolate(dataarray, *args, values, axis, how, fill, **kwargs):
+    return dataarray.interp(**{axis:values}, how=how)
 
 # ROLLING
-@xarray_keepattrs
-def cumulate(xarray, *args, axis, direction, **kwargs): 
-    if direction == 'lower': return xarray.cumsum(dim=axis, keep_attrs=True)
-    elif direction == 'upper': return xarray[{axis:slice(None, None, -1)}].cumsum(dim=axis, keep_attrs=True)[{axis:slice(None, None, -1)}]
+@dataarray_keepattrs
+def cumulate(dataarray, *args, axis, direction, **kwargs): 
+    if direction == 'lower': return dataarray.cumsum(dim=axis, keep_attrs=True)
+    elif direction == 'upper': return dataarray[{axis:slice(None, None, -1)}].cumsum(dim=axis, keep_attrs=True)[{axis:slice(None, None, -1)}]
     else: raise ValueError(direction)    
 
-@xarray_keepattrs
-def uncumulate(xarray, *args, axis, direction, **kwargs): 
+@dataarray_keepattrs
+def uncumulate(dataarray, *args, axis, direction, **kwargs): 
     subfunction = lambda x: [x[0]] + [x - y for x, y in zip(x[1:], x[:-1])]
     function = {'lower': lambda x: subfunction(x), 'upper': lambda x: subfunction(x[::-1])[::-1]}[direction]
-    return xr.apply_ufunc(function, xarray, input_core_dims=[[axis]], output_core_dims=[[axis]], keep_attrs=True)  
+    return xr.apply_ufunc(function, dataarray, input_core_dims=[[axis]], output_core_dims=[[axis]], keep_attrs=True)  
 
-@xarray_keepattrs
-def movingaverage(xarray, *args, axis, period, **kwargs):
+@dataarray_keepattrs
+def movingaverage(dataarray, *args, axis, period, **kwargs):
     assert isinstance(period, int)
-    assert len(xarray.coords[axis].values) >= period
-    newxarray = xarray.rolling(**{axis:period+1}, center=True).mean().dropna(axis)
-    newxarray.attrs = xarray.attrs
-    return newxarray
+    assert len(dataarray.coords[axis].values) >= period
+    newdataarray = dataarray.rolling(**{axis:period+1}, center=True).mean().dropna(axis)
+    return newdataarray
 
-@xarray_keepattrs
-def movingtotal(xarray, *args, axis, period, **kwargs):
+@dataarray_keepattrs
+def movingtotal(dataarray, *args, axis, period, **kwargs):
     assert isinstance(period, int)
-    assert len(xarray.coords[axis].values) >= period
-    newxarray = xarray.rolling(**{axis:period+1}, center=True).sum().dropna(axis)
-    newxarray.attrs = xarray.attrs
-    return newxarray
+    assert len(dataarray.coords[axis].values) >= period
+    newdataarray = dataarray.rolling(**{axis:period+1}, center=True).sum().dropna(axis)
+    return newdataarray
 
     
 
