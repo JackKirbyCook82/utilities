@@ -56,16 +56,13 @@ class SliceOrderedDict(ODict):
         elif isinstance(key, int): return self.__retrieve(key, pop=False)
         else: raise TypeError(type(key))
         
-    def update(self, others):
+    def update(self, others, inplace=True):
         if not isinstance(others, dict): raise TypeError(type(others))
         updated = [(key, others.pop(key, value)) for key, value in self.items()]
         added = [(key, value) for key, value in others.items()]
-        return self.__class__(updated + added)
-
-    
-
-
-
+        if not inplace: return self.__class__(updated + added)
+        self = self.__class__(updated + added)
+        return self
 
 
 
