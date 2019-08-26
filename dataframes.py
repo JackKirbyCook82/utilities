@@ -105,11 +105,12 @@ def geodataframe_fromfile(file):
 
 
 # CLEANERS
-def dataframe_parser(dataframe, parsers={}, default=None):
+def dataframe_parser(dataframe, parsers={}, defaultparser=None):
     for column in dataframe.columns:
         try: dataframe.loc[:, column] = dataframe.loc[:, column].apply(parsers[column])
         except KeyError: 
-            if default: dataframe.loc[:, column] = dataframe.loc[:, column].apply(default)
+            if defaultparser:
+                dataframe.loc[:, column] = dataframe.loc[:, column].apply(defaultparser)
     return dataframe
   
 

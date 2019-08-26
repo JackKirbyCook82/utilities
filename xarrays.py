@@ -9,6 +9,7 @@ Created on Sat Aug 11 2018
 import numpy as np
 import xarray as xr
 from functools import update_wrapper
+from collections import OrderedDict as ODict
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
@@ -20,7 +21,7 @@ __license__ = ""
 
 
 _aslist = lambda items: [items] if not isinstance(items, (list, tuple)) else list(items)
-_aggregations = {'sum':np.sum, 'avg':np.mean, 'max':np.max, 'min':np.min}
+_AGGREGATIONS = {'sum':np.sum, 'avg':np.mean, 'max':np.max, 'min':np.min}
 
 
 # FACTORY
@@ -34,7 +35,7 @@ def xarray_fromdataframe(data, *args, datakeys=[], datakey=None, aggs={}, fills=
     for key in axeskeys: data.loc[:, key] = data[key].apply(str)
 
     data = data.set_index(axeskeys, drop=True)[datakeys] 
-    aggs = {key:_aggregations[aggkey] for key, aggkey in aggs.items() if key in datakeys}
+    aggs = {key:_AGGREGATIONS[aggkey] for key, aggkey in aggs.items() if key in datakeys}
     if aggs: data = data.groupby(axeskeys).agg(aggs, axis=1)
 
     if len(datakeys) == 1 and not forcedataset:
@@ -48,15 +49,19 @@ def xarray_fromdataframe(data, *args, datakeys=[], datakey=None, aggs={}, fills=
         return dataset
   
 
-def xarray_fromvalues(data, *args, dims, attrs, forcedataset=True, **kwargs): 
-    assert all([isinstance(item, dict) for item in (data, dims, attrs)])
+def xarray_fromvalues(data, *args, dims, scope, attrs, forcedataset=True, **kwargs): 
+    assert all([isinstance(item, dict) for item in (data, attrs)])
+    assert all([isinstance(dims, ODict) for item in (dims, scope)])
+    assert all([key not in dims.keys() for key in scope.keys()])
     assert all([isinstance(items, np.ndarray) for items in data.values()])
+
     if len(data) == 1 and not forcedataset:
-        dataarray = xr.DataArray(list(data.values())[0], coords=dims, dims=list(dims.keys()), attrs=attrs)
-        dataarray.name = list(data.keys())[0]  
+        dataarray = xr.DataArray(list(data.values())[0], coords=dims, dims=list(dims.keys()), attrs=attrs, name=list(data.keys())[0])
+        dataarray = dataarray.assign_coords(**scope)
         return dataarray
     else: 
         dataset = xr.Dataset(data, coords=dims, dim=list(dims.keys()), attrs=attrs)
+        dataset = dataset.assign_coords(**scope)
         return dataset
 
 

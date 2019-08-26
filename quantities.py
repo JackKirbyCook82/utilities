@@ -15,7 +15,7 @@ __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
 
-MULTIPLIERS = {'M':1000000, 'K':1000, '%':0.01, '1':1}
+_MULTIPLIERS = {'M':1000000, 'K':1000, '%':0.01, '1':1}
 
 _aslist = lambda items: ([items] if not isinstance(items, (list, tuple)) else items)
 _asstr = lambda items: (str(item) for item in items)
@@ -61,6 +61,7 @@ class Quantity(object):
         if not isinstance(other, type(self)): return False
         return all([self.ofquantity == other.ofquantity, self.byquantity == other.byquantity])
     def __ne__(self, other): return not self.__eq__(other)
+    def __bool__(self): return set(self.numerator) != set(self.denominator)
     
     @sametype
     def __mul__(self, other): return self.__class__([*self.ofquantity, *other.ofquantity], [*self.byquantity, *other.byquantity])
@@ -76,13 +77,13 @@ class Quantity(object):
         
 
 class Unit(Quantity): 
-    pass
+    def __str__(self): return ' {}'.format(super().__str__()) if self else super().__str__()
 
 
 class Multiplier(Quantity):
     @property
     def num(self):
-        values = lambda x: [1, *[MULTIPLIERS[item] for item in x]]
+        values = lambda x: [1, *[_MULTIPLIERS[item] for item in x]]
         return np.prod(values(self.ofquantity)) / np.prod(values(self.byquantity))
 
     @sametype
