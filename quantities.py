@@ -10,12 +10,12 @@ import numpy as np
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['Multiplier', 'Unit']
+__all__ = ['Multiplier', 'Unit', 'Heading']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
 
-_MULTIPLIERS = {'M':1000000, 'K':1000, '%':0.01, '1':1}
+MULTIPLIERS = {'M':1000000, 'K':1000, '%':0.01, '1':1}
 
 _aslist = lambda items: ([items] if not isinstance(items, (list, tuple)) else items)
 _asstr = lambda items: (str(item) for item in items)
@@ -33,10 +33,13 @@ class Quantity(object):
     divchar = '/'
     multchar = '·'
     defaultchar = '1'
+    quantityformat = '{}'
     
     def __init__(self, ofquantity=[], byquantity=[]): self.__ofquantity, self.__byquantity = self.__prep(ofquantity, byquantity)     
+    def __str__(self): return self.quantityformat.format(self.string) if self else ''
 
-    def __str__(self): 
+    @property
+    def string(self): 
         if not any([self.ofquantity, self.byquantity]): return ''
         elif not self.byquantity: return self.numerator
         else: return self.divchar.join([self.numerator, self.denominator])
@@ -74,16 +77,30 @@ class Quantity(object):
         try: ofquantity, byquantity = string.split(cls.divchar)
         except ValueError: ofquantity, byquantity = string.split(cls.divchar)[0], ''
         return cls(function(ofquantity), function(byquantity))
+
+    @classmethod
+    def register(cls, quantityformat):  
+        def wrapper(subclass):
+            name = subclass.__name__
+            bases = (subclass, cls)
+            newsubclass = type(name, bases, dict(quantityformat=quantityformat))
+            return newsubclass
+        return wrapper  
         
 
-class Unit(Quantity): 
-    def __str__(self): return ' {}'.format(super().__str__()) if self else super().__str__()
+@Quantity.register(quantityformat=' {}')
+class Unit: pass
+
+ 
+@Quantity.register(quantityformat='{}')
+class Heading: pass
 
 
-class Multiplier(Quantity):
+@Quantity.register(quantityformat='{}')
+class Multiplier:
     @property
     def num(self):
-        values = lambda x: [1, *[_MULTIPLIERS[item] for item in x]]
+        values = lambda x: [1, *[MULTIPLIERS[item] for item in x]]
         return np.prod(values(self.ofquantity)) / np.prod(values(self.byquantity))
 
     @sametype

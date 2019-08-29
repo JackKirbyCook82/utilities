@@ -11,7 +11,7 @@ from collections import OrderedDict as ODict
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['clskey_singledispatcher', 'type_singledispatcher', 'key_singledispatcher', 'keyword_singledispatcher']
+__all__ = ['clskey_singledispatcher', 'clstype_singledispatcher', 'type_singledispatcher', 'key_singledispatcher', 'keyword_singledispatcher']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
@@ -87,6 +87,30 @@ def keyword_singledispatcher(keyword):
         update_wrapper(wrapper, mainfunc)
         return wrapper
     return decorator
+
+
+def clstype_singledispatcher(mainfunc):
+    _registry = ODict()
+    
+    def update(regfunc, *types): _registry.update({item:regfunc for item in types})
+    def registry(): return _registry
+    
+    def register(*types): 
+        def register_decorator(regfunc): 
+            update(regfunc, *types) 
+            def register_wrapper(*args, **kwargs): 
+                return regfunc(*args, **kwargs) 
+            return register_wrapper 
+        return register_decorator 
+
+    def wrapper(self, arg, *args, **kwargs): 
+        func = _registry.get(type(arg), mainfunc)
+        return func(self, arg, *args, **kwargs)         
+
+    wrapper.register = register 
+    wrapper.registry = registry
+    update_wrapper(wrapper, mainfunc)
+    return wrapper
 
 
 def type_singledispatcher(mainfunc):
