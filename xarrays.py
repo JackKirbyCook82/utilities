@@ -20,8 +20,9 @@ __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
 
-_aslist = lambda items: [items] if not isinstance(items, (list, tuple)) else list(items)
 _AGGREGATIONS = {'sum':np.sum, 'avg':np.mean, 'max':np.max, 'min':np.min}
+
+_aslist = lambda items: [items] if not isinstance(items, (list, tuple)) else list(items)
 
 
 # FACTORY
