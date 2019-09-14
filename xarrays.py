@@ -30,7 +30,7 @@ def xarray_fromdataframe(data, *args, datakeys=[], datakey=None, aggs={}, fills=
     assert isinstance(attrs, dict)
     datakeys = [key for key in [*_aslist(datakey), *_aslist(datakeys)] if key]
     assert all([key in data.columns for key in datakeys])
-
+    
     axeskeys = [key for key in data.columns if key not in datakeys]
     axeskeys.sort(key=lambda key: len(set(data[key].values)))
     for key in axeskeys: data.loc[:, key] = data[key].apply(str)
