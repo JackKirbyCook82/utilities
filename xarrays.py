@@ -13,9 +13,8 @@ from collections import OrderedDict as ODict
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['xarray_fromdataframe', 'xarray_fromvalues', 'summation', 'mean', 'stdev', 'minimum', 'maximum',
-           'average', 'weightaverage', 'normalize', 'standardize', 'minmax', 'interpolate',
-           'cumulate', 'uncumulate', 'movingaverage', 'movingtotal']
+__all__ = ['xarray_fromdataframe', 'xarray_fromvalues', 'summation', 'mean', 'stdev', 'minimum', 'maximum', 'average', 'weight_average', 'combine', 
+           'normalize', 'standardize', 'minmax', 'interpolate', 'cumulate', 'uncumulate', 'moving_average', 'moving_total']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
@@ -23,6 +22,7 @@ __license__ = ""
 _AGGREGATIONS = {'sum':np.sum, 'avg':np.mean, 'max':np.max, 'min':np.min}
 
 _aslist = lambda items: [items] if not isinstance(items, (list, tuple)) else list(items)
+_flatten = lambda nesteditems: [item for items in nesteditems for item in items]
 
 
 # FACTORY
@@ -92,8 +92,18 @@ def maximum(dataarray, *args, axis, **kwargs): return xr.apply_ufunc(np.amax, da
 @dataarray_function
 def average(dataarray, *args, axis, weights, **kwargs): return dataarray.reduce(np.average, dim=axis, keep_attrs=None, weights=weights, **kwargs)
 @dataarray_function
-def weightaverage(dataarray, *args, axis, weights=None, **kwargs): return dataarray.reduce(np.average, dim=axis, keep_attrs=None, weights=weights, **kwargs)
+def weight_average(dataarray, *args, axis, weights=None, **kwargs): return dataarray.reduce(np.average, dim=axis, keep_attrs=None, weights=weights, **kwargs)
 
+@dataarray_function
+def combine(dataarray, *args, axis, values, agg, naming={}, **kwargs):
+    assert all([isinstance(items, tuple) for items in values])   
+    assert isinstance(naming, dict)
+    assert agg in _AGGREGATIONS.keys()
+    function = lambda items: dataarray.loc[{axis:list(items)}].reduce(_AGGREGATIONS[agg], dim=axis, keep_attrs=None).assign_coords(**{axis:naming[items]}).expand_dims(axis)  
+    combined_dataarrays = [function(items) for items in values]
+    same_dataarray = dataarray.drop(_flatten(values), dim=axis)
+    return xr.concat([*combined_dataarrays, same_dataarray], axis)
+    
 
 # BROADCASTING
 @dataarray_function
@@ -134,14 +144,14 @@ def uncumulate(dataarray, *args, axis, direction, **kwargs):
     return xr.apply_ufunc(function, dataarray, input_core_dims=[[axis]], output_core_dims=[[axis]], keep_attrs=True)  
 
 @dataarray_function
-def movingaverage(dataarray, *args, axis, period, **kwargs):
+def moving_average(dataarray, *args, axis, period, **kwargs):
     assert isinstance(period, int)
     assert len(dataarray.coords[axis].values) >= period
     newdataarray = dataarray.rolling(**{axis:period+1}, center=True).mean().dropna(axis)
     return newdataarray
 
 @dataarray_function
-def movingtotal(dataarray, *args, axis, period, **kwargs):
+def moving_total(dataarray, *args, axis, period, **kwargs):
     assert isinstance(period, int)
     assert len(dataarray.coords[axis].values) >= period
     newdataarray = dataarray.rolling(**{axis:period+1}, center=True).sum().dropna(axis)
