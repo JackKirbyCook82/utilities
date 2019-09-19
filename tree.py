@@ -38,7 +38,7 @@ class Node(object):
         return [node for node in generator]
            
     def __repr__(self): return '{}({})'.format(self.__class__.__name__, self.__key)
-    def __str__(self): return uppercase(self.__key, withops=True)
+    def __str__(self): return self.__key
     def __hash__(self): return str(self)
     def __len__(self): return len(self.offspring)
        
@@ -76,11 +76,11 @@ class TreeRenderer(object):
         pre = lambda i, imax: self.__terminate if lastchild(i, imax) else self.__branch
         pads = lambda: ''.join([self.__blank if layer else self.__run for layer in layers])
         
-        if not layers: yield uppercase(node.key, withops=True)
+        if not layers: yield node.key
         
         imax = len(node.children) - 1
         for i, child in zip(range(len(node.children)), node.children):
-            yield ''.join([pads(), pre(i, imax) ,uppercase(child.key, withops=True)])
+            yield ''.join([pads(), pre(i, imax) ,child.key])
             yield from self.rowgenerator(child, layers=[*layers, lastchild(i, imax)])
             
 

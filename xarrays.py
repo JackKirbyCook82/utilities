@@ -11,9 +11,11 @@ import xarray as xr
 from functools import update_wrapper
 from collections import OrderedDict as ODict
 
+import utilities.narrays as nar
+
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['xarray_fromdataframe', 'xarray_fromvalues', 'summation', 'mean', 'stdev', 'minimum', 'maximum', 'average', 'weight_average', 'combine', 
+__all__ = ['xarray_fromdataframe', 'xarray_fromvalues', 'summation', 'average', 'stdev', 'minimum', 'maximum', 'wtaverage', 'wtstdev', 'combine', 
            'normalize', 'standardize', 'minmax', 'interpolate', 'cumulate', 'uncumulate', 'moving_average', 'moving_total']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
@@ -40,7 +42,7 @@ def xarray_fromdataframe(data, *args, datakeys=[], datakey=None, aggs={}, fills=
     if aggs: data = data.groupby(axeskeys).agg(aggs, axis=1)
 
     if len(datakeys) == 1 and not forcedataset:
-        dataarray = xr.DataArray.from_series(data).fillna(fills)     
+        dataarray = xr.DataArray.from_series(data).fillna(fills)   
         dataarray.name = datakeys[0]
         dataarray.attrs = attrs
         return dataarray
@@ -82,17 +84,25 @@ def dataarray_function(function):
 @dataarray_function
 def summation(dataarray, *args, axis, **kwargs): return dataarray.sum(dim=axis, keep_attrs=True) 
 @dataarray_function
-def mean(dataarray, *args, axis, **kwargs): return dataarray.mean(dim=axis, keep_attrs=True)  
+def average(dataarray, *args, axis, **kwargs): return dataarray.mean(dim=axis, keep_attrs=True)  
 @dataarray_function
 def stdev(dataarray, *args, axis, **kwargs): return dataarray.std(dim=axis, keep_attrs=True) 
+
 @dataarray_function
 def minimum(dataarray, *args, axis, **kwargs): return xr.apply_ufunc(np.amin, dataarray, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1})    
 @dataarray_function
 def maximum(dataarray, *args, axis, **kwargs): return xr.apply_ufunc(np.amax, dataarray, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1})    
+
+
 @dataarray_function
-def average(dataarray, *args, axis, weights, **kwargs): return dataarray.reduce(np.average, dim=axis, keep_attrs=None, weights=weights, **kwargs)
+def wtaverage(dataarray, *args, axis, weights, **kwargs): 
+    function = lambda x: nar.wtaverage(x, index=-1, weights=weights)
+    return xr.apply_ufunc(function, dataarray, input_core_dims=[[axis]], keep_attrs=True)  
 @dataarray_function
-def weight_average(dataarray, *args, axis, weights=None, **kwargs): return dataarray.reduce(np.average, dim=axis, keep_attrs=None, weights=weights, **kwargs)
+def wtstdev(dataarray, *args, axis, weights, **kwargs): 
+    function = lambda x: nar.wtstdev(x, index=-1, weights=weights)
+    return xr.apply_ufunc(function, dataarray, input_core_dims=[[axis]], keep_attrs=True)  
+
 
 @dataarray_function
 def combine(dataarray, *args, axis, values, agg, naming={}, **kwargs):
@@ -114,7 +124,7 @@ def normalize(dataarray, *args, axis, **kwargs):
 
 @dataarray_function
 def standardize(dataarray, *args, axis, **kwargs):
-    xmean = mean(dataarray, *args, axis=axis, **kwargs)
+    xmean = average(dataarray, *args, axis=axis, **kwargs)
     xstd = stdev(dataarray, *args, axis=axis, **kwargs)
     function = lambda x, m, s: np.divide(np.subtract(x, m), s)
     return xr.apply_ufunc(function, dataarray, xmean, xstd, keep_attrs=True)

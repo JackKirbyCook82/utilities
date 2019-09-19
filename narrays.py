@@ -62,6 +62,16 @@ def interpolation(narray, header, values, *args, index, **kwargs):
     return np.apply_along_axis(function, index, narray)
 
 
+# REDUCTION
+def wtaverage(narray, *args, index, weights, **kwargs):
+    ### INGORE NA
+    pass
+
+def wtstdev(narray, *args, index, weights, **kwargs):
+    ### IGNORE NA
+    pass
+
+
 # ROLLING
 def cumulate(narray, *args, index, direction, **kwargs):
     function = {'lower': lambda x: np.cumsum(x), 'upper': lambda x: np.flip(np.cumsum(np.flip(x, 0)), 0)}[direction]
