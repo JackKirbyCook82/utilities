@@ -102,6 +102,10 @@ def wtaverage(dataarray, *args, axis, weights, **kwargs):
 def wtstdev(dataarray, *args, axis, weights, **kwargs): 
     function = lambda x: nar.wtstdev(x, index=-1, weights=weights)
     return xr.apply_ufunc(function, dataarray, input_core_dims=[[axis]], keep_attrs=True)  
+@dataarray_function
+def wtmedian(dataarray, *args, axis, weights, **kwargs): 
+    function = lambda x: nar.wtmedian(x, index=-1, weights=weights)
+    return xr.apply_ufunc(function, dataarray, input_core_dims=[[axis]], keep_attrs=True)  
 
 
 @dataarray_function

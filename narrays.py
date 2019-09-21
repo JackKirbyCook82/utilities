@@ -13,7 +13,7 @@ from utilities.dispatchers import keyword_singledispatcher as keyword_dispatcher
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['curve', 'inversion', 'interpolation', 'cumulate', 'uncumulate', 'movingaverage', 'movingtotal']
+__all__ = ['curve', 'inversion', 'interpolation', 'cumulate', 'uncumulate', 'movingaverage', 'movingtotal', 'wtaverage', 'wtstdev']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
@@ -52,6 +52,47 @@ def curve(x, y, *args, how, fill={}, smoothing={}, **kwargs):
     return interp1d(x, y, kind=how, fill_value=fillvalue, bounds_error=False if fillvalue else True)
 
 
+def wtaverage_vector(vector, weights):
+    if all([np.isnan(x) for x in vector]): return np.nan    
+    weights = [w for x, w in zip(vector, weights) if not np.isnan(x)]
+    vector = [x for x in vector if not np.isnan(x)]
+    assert len(vector) == len(weights)   
+   
+    weights = [w/sum(weights) for w in weights]
+    vector = np.array([x * w for x, w in zip(vector, weights)])
+    return np.sum(vector)
+
+def wtstdev_vector(vector, weights):
+    if all([np.isnan(x) for x in vector]): return np.nan    
+    if len(vector) == 1: return 
+    wtavg = wtaverage_vector(vector, weights)
+    weights = [w for x, w in zip(vector, weights) if not np.isnan(x)]
+    vector = [x for x in vector if not np.isnan(x)]
+    assert len(vector) == len(weights)        
+    
+    if len(vector) == 1: return 0
+    weights = [w/sum(weights) for w in weights]     
+    vector = np.array([((x-wtavg)**2)*w for x, w in zip(vector, weights)])
+    factor = ((len(vector)-1)/len(vector))
+    return np.divide(sum(vector), factor)**0.5
+
+
+def wtmedian_vector(vector, weights):
+    if all([np.isnan(x) for x in vector]): return np.nan    
+    weights = [w for x, w in zip(vector, weights) if not np.isnan(x)]
+    vector = [x for x in vector if not np.isnan(x)]
+    assert len(vector) == len(weights)      
+    
+    vector, weights = map(np.array, zip(*sorted(zip(vector, weights))))
+    midpoint = 0.5 * sum(weights)
+    if any(weights > midpoint): return (vector[weights == np.max(weights)])[0]
+    else:
+        weights = np.cumsum(weights)
+        idx = np.where(weights <= midpoint)[0][-1]
+        if weights[idx] == midpoint: return np.mean(vector[idx:idx+2])
+        else: return vector[idx+1]
+
+
 # BROADCASTING
 def inversion(narray, header, values, *args, index, **kwargs):
     function = lambda x: curve(x, header, *args, **kwargs)(values)
@@ -63,13 +104,14 @@ def interpolation(narray, header, values, *args, index, **kwargs):
 
 
 # REDUCTION
-def wtaverage(narray, *args, index, weights, **kwargs):
-    ### INGORE NA
-    pass
+def wtaverage(narray, *args, index, weights, **kwargs): 
+    return np.apply_along_axis(wtaverage_vector, index, narray, weights)
 
-def wtstdev(narray, *args, index, weights, **kwargs):
-    ### IGNORE NA
-    pass
+def wtstdev(narray, *args, index, weights, **kwargs): 
+    return np.apply_along_axis(wtstdev_vector, index, narray, weights)
+
+def wtmedian(narray, *args, index, weights, **kwargs): 
+    return np.apply_along_axis(wtmedian_vector, index, narray, weights)
 
 
 # ROLLING
