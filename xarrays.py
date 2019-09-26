@@ -15,8 +15,8 @@ import utilities.narrays as nar
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['xarray_fromdataframe', 'xarray_fromvalues', 'summation', 'average', 'stdev', 'minimum', 'maximum', 'wtaverage', 'wtstdev', 'combine', 
-           'normalize', 'standardize', 'minmax', 'interpolate', 'cumulate', 'uncumulate', 'moving_average', 'moving_total']
+__all__ = ['xarray_fromdataframe', 'xarray_fromvalues', 'summation', 'average', 'stdev', 'minimum', 'maximum', 'wtaverage', 'wtstdev', 'wtmedian', 'groupby',
+           'normalize', 'standardize', 'minmax', 'interpolate', 'lower_cumulate', 'upper_cumulate', 'lower_uncumulate', 'upper_uncumulate', 'moving_average', 'moving_summation']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
@@ -108,16 +108,14 @@ def wtmedian(dataarray, *args, axis, weights, **kwargs):
     return xr.apply_ufunc(function, dataarray, input_core_dims=[[axis]], keep_attrs=True)  
 
 
+# GROUPING
 @dataarray_function
-def combine(dataarray, *args, axis, values, agg, naming={}, **kwargs):
-    assert all([isinstance(items, tuple) for items in values])   
-    assert isinstance(naming, dict)
-    assert agg in _AGGREGATIONS.keys()
-    function = lambda items: dataarray.loc[{axis:list(items)}].reduce(_AGGREGATIONS[agg], dim=axis, keep_attrs=None).assign_coords(**{axis:naming[items]}).expand_dims(axis)  
-    combined_dataarrays = [function(items) for items in values]
-    same_dataarray = dataarray.drop(_flatten(values), dim=axis)
-    return xr.concat([*combined_dataarrays, same_dataarray], axis)
-    
+def groupby(dataarray, *args, axis, agg, axisgroups={}, **kwargs):
+    function = lambda x, newvalue: xr.apply_ufunc(_AGGREGATIONS[agg], x, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1}).assign_coords(**{axis:newvalue}).expand_dims(axis) 
+    dataarrays = [dataarray.loc[{axis:_aslist(values)}] for values in axisgroups.values()] 
+    dataarrays = [function(dataarray, newvalue) for dataarray, newvalue in zip(dataarrays, axisgroups.keys())]
+    return xr.concat(dataarrays, axis)
+
 
 # BROADCASTING
 @dataarray_function
@@ -146,16 +144,24 @@ def interpolate(dataarray, *args, values, axis, how, fill, **kwargs):
 
 # ROLLING
 @dataarray_function
-def cumulate(dataarray, *args, axis, direction, **kwargs): 
-    if direction == 'lower': return dataarray.cumsum(dim=axis, keep_attrs=True)
-    elif direction == 'upper': return dataarray[{axis:slice(None, None, -1)}].cumsum(dim=axis, keep_attrs=True)[{axis:slice(None, None, -1)}]
-    else: raise ValueError(direction)    
+def upper_cumulate(dataarray, *args, axis, **kwargs): 
+    return dataarray[{axis:slice(None, None, -1)}].cumsum(dim=axis, keep_attrs=True)[{axis:slice(None, None, -1)}] 
 
 @dataarray_function
-def uncumulate(dataarray, *args, axis, direction, **kwargs): 
+def lower_cumulate(dataarray, *args, axis, **kwargs): 
+    return dataarray.cumsum(dim=axis, keep_attrs=True)
+ 
+@dataarray_function
+def upper_uncumulate(dataarray, *args, axis, **kwargs): 
     subfunction = lambda x: [x[0]] + [x - y for x, y in zip(x[1:], x[:-1])]
-    function = {'lower': lambda x: subfunction(x), 'upper': lambda x: subfunction(x[::-1])[::-1]}[direction]
+    function = lambda x: subfunction(x[::-1])[::-1]
     return xr.apply_ufunc(function, dataarray, input_core_dims=[[axis]], output_core_dims=[[axis]], keep_attrs=True)  
+
+@dataarray_function
+def lower_uncumulate(dataarray, *args, axis, **kwargs): 
+    subfunction = lambda x: [x[0]] + [x - y for x, y in zip(x[1:], x[:-1])]
+    function = lambda x: subfunction(x)
+    return xr.apply_ufunc(function, dataarray, input_core_dims=[[axis]], output_core_dims=[[axis]], keep_attrs=True)
 
 @dataarray_function
 def moving_average(dataarray, *args, axis, period, **kwargs):
@@ -165,7 +171,7 @@ def moving_average(dataarray, *args, axis, period, **kwargs):
     return newdataarray
 
 @dataarray_function
-def moving_total(dataarray, *args, axis, period, **kwargs):
+def moving_summation(dataarray, *args, axis, period, **kwargs):
     assert isinstance(period, int)
     assert len(dataarray.coords[axis].values) >= period
     newdataarray = dataarray.rolling(**{axis:period+1}, center=True).sum().dropna(axis)
