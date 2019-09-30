@@ -111,6 +111,7 @@ def wtmedian(dataarray, *args, axis, weights, **kwargs):
 # GROUPING
 @dataarray_function
 def groupby(dataarray, *args, axis, agg, axisgroups={}, **kwargs):
+    axisgroups = {str(grpkey):[str(grpvalue) for grpvalue in grpvalues] for grpkey, grpvalues in axisgroups.items()}
     function = lambda x, newvalue: xr.apply_ufunc(_AGGREGATIONS[agg], x, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1}).assign_coords(**{axis:newvalue}).expand_dims(axis) 
     dataarrays = [dataarray.loc[{axis:_aslist(values)}] for values in axisgroups.values()] 
     dataarrays = [function(dataarray, newvalue) for dataarray, newvalue in zip(dataarrays, axisgroups.keys())]
