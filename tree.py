@@ -6,8 +6,6 @@ Created on Weds Sept 4 2019
 
 """
 
-from utilities.strings import uppercase
-
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
 __all__ = ['Node', 'TreeRenderer']
@@ -37,9 +35,8 @@ class Node(object):
         next(generator)
         return [node for node in generator]
            
-    def __repr__(self): return '{}({})'.format(self.__class__.__name__, self.__key)
-    def __str__(self): return self.__key
-    def __hash__(self): return str(self)
+    def __repr__(self): return '{}({})'.format(self.__class__.__name__, str(self.key))
+    def __str__(self): return str(self.__key)
     def __len__(self): return len(self.offspring)
        
     def addchildren(self, *others):
@@ -67,7 +64,7 @@ class TreeRenderer(object):
         self.__blank = _STYLES[style]['blank'] + _STYLES[style]['blank'][-1] * extend
     
     def __call__(self, root):
-        rows = [row for row in self.rowgenerator(root)]
+        rows = [str(row) for row in self.rowgenerator(root)]
         return '\n'.join(rows)
 
     def rowgenerator(self, node, layers=[]):
@@ -80,7 +77,7 @@ class TreeRenderer(object):
         
         imax = len(node.children) - 1
         for i, child in zip(range(len(node.children)), node.children):
-            yield ''.join([pads(), pre(i, imax) ,child.key])
+            yield ''.join([pads(), pre(i, imax) ,str(child.key)])
             yield from self.rowgenerator(child, layers=[*layers, lastchild(i, imax)])
             
 
