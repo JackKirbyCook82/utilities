@@ -122,21 +122,21 @@ def groupby(dataarray, *args, axis, agg, axisgroups={}, **kwargs):
 @dataarray_function
 def normalize(dataarray, *args, axis, **kwargs):
     xtotal = summation(dataarray, *args, axis=axis, **kwargs)
-    function = lambda x, t: np.divide(x, t) if x != 0 else 0 
+    function = lambda x, t: np.divide(x, t)
     return xr.apply_ufunc(function, dataarray, xtotal, keep_attrs=True)
 
 @dataarray_function
 def standardize(dataarray, *args, axis, **kwargs):
     xmean = average(dataarray, *args, axis=axis, **kwargs)
     xstd = stdev(dataarray, *args, axis=axis, **kwargs)
-    function = lambda x, m, s: np.divide(np.subtract(x, m), s) if x != m else 0 
+    function = lambda x, m, s: np.divide(np.subtract(x, m), s)
     return xr.apply_ufunc(function, dataarray, xmean, xstd, keep_attrs=True)
 
 @dataarray_function
 def minmax(dataarray, *args, axis, **kwargs):
     xmin = minimum(dataarray, *args, axis=axis, **kwargs)
     xmax = maximum(dataarray, *args, axis=axis, **kwargs)
-    function = lambda x, mi, ma: np.divide(np.subtract(x, mi), np.subtract(ma, mi)) if mi != ma else 0
+    function = lambda x, mi, ma: np.divide(np.subtract(x, mi), np.subtract(ma, mi))
     return xr.apply_ufunc(function, dataarray, xmin, xmax, keep_attrs=True) 
 
 @dataarray_function
