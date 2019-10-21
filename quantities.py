@@ -15,7 +15,7 @@ __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
 
-MULTIPLIERS = {'M':1000000, 'K':1000, '%':0.01, '1':1}
+MULTIPLIERS = {'M':1000000, 'K':1000, '%':0.01, '1':1, '':1}
 
 _aslist = lambda items: ([items] if not isinstance(items, (list, tuple)) else items)
 _asstr = lambda items: (str(item) for item in items)
