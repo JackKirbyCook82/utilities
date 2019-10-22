@@ -55,7 +55,7 @@ class Node(object):
     def __str__(self): 
         if len(self.children) == 0: return '{}'.format(self.key)
         elif len(self.children) == 1: return '{} ==> {}'.format(self.children[0].key, self.key)
-        else: return '[{}] ==> {}'.format(', '.join([child.key for child in self.children]), self.key)
+        else: return '({}) ==> {}'.format(', '.join([child.key for child in self.children]), self.key)
     
     def addchildren(self, *others): 
         for other in others: self.addchild(other)        
@@ -92,7 +92,7 @@ class Tree(object):
         else: return "{}(key='{}')".format(self.__class__.__name__, self.key)    
     def __str__(self): 
         namestr = '{} ("{}")'.format(self.name if self.name else self.__class__.__name__, self.key)
-        jsonstr = json.dumps(list(self.nodes.values()), sort_keys=False, indent=3, separators=(',', ' : '), default=str)  
+        jsonstr = json.dumps(tuple(self.nodes.values()), sort_keys=False, indent=3, separators=(',', ' : '), default=str)  
         return ' '.join([namestr, jsonstr])
       
     def append(self, *nodes): 
