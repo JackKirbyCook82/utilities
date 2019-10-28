@@ -31,7 +31,7 @@ def bounds_fillcurve(*args, direction, bounds, **kwargs):
     return {'upper': tuple(bounds[::-1]), 'lower': tuple(bounds[:])}[direction]
 
 
-def curve(x, y, *args, how, fill={}, smoothing={}, **kwargs): 
+def curve(x, y, *args, how, fill={}, **kwargs): 
     fillvalue = fillcurve(*args, **fill, **kwargs)    
     return interp1d(x, y, kind=how, fill_value=fillvalue, bounds_error=False if fillvalue else True)
     

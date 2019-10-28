@@ -168,14 +168,15 @@ def lower_uncumulate(dataarray, *args, axis, **kwargs):
 def moving_average(dataarray, *args, axis, period, **kwargs):
     assert isinstance(period, int)
     assert len(dataarray.coords[axis].values) >= period
-    newdataarray = dataarray.rolling(**{axis:period+1}, center=True).mean().dropna(axis)
+    newdataarray = dataarray.rolling(**{axis:period+1}, center=True).mean().dropna(axis, how='all')
+    print(newdataarray)
     return newdataarray
 
 @dataarray_function
 def moving_summation(dataarray, *args, axis, period, **kwargs):
     assert isinstance(period, int)
     assert len(dataarray.coords[axis].values) >= period
-    newdataarray = dataarray.rolling(**{axis:period+1}, center=True).sum().dropna(axis)
+    newdataarray = dataarray.rolling(**{axis:period+1}, center=True).sum().dropna(axis, how='all')
     return newdataarray
 
     
