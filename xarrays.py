@@ -169,7 +169,6 @@ def moving_average(dataarray, *args, axis, period, **kwargs):
     assert isinstance(period, int)
     assert len(dataarray.coords[axis].values) >= period
     newdataarray = dataarray.rolling(**{axis:period+1}, center=True).mean().dropna(axis, how='all')
-    print(newdataarray)
     return newdataarray
 
 @dataarray_function
