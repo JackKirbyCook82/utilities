@@ -52,10 +52,7 @@ class Node(object):
         yield self        
     
     def __repr__(self): return "{}(key='{}')".format(self.__class__.__name__, self.key)  
-    def __str__(self): 
-        if len(self.children) == 0: return '{}'.format(self.key)
-        elif len(self.children) == 1: return '{} ==> {}'.format(self.children[0].key, self.key)
-        else: return '({}) ==> {}'.format(', '.join([child.key for child in self.children]), self.key)
+    def __str__(self): return '{}'.format(self.key)
     
     def addchildren(self, *others): 
         for other in others: self.addchild(other)        
@@ -85,14 +82,15 @@ class Tree(object):
     def __contains__(self, nodekey): return nodekey in self.nodes.keys()
     def __getitem__(self, nodekey): return self.nodes[nodekey]
     
-    def asdict(self): return {' '.join([self.key, nodekey]):str(node) for nodekey, node in self.nodes.items()}    
+    def __iter__(self):
+        for key, value in self.nodes.items(): yield key, value
     
     def __repr__(self): 
         if self.name: return "{}(key='{}', name='{}')".format(self.__class__.__name__, self.key, self.name)
         else: return "{}(key='{}')".format(self.__class__.__name__, self.key)    
     def __str__(self): 
         namestr = '{} ("{}")'.format(self.name if self.name else self.__class__.__name__, self.key)
-        jsonstr = json.dumps(tuple(self.nodes.values()), sort_keys=False, indent=3, separators=(',', ' : '), default=str)  
+        jsonstr = json.dumps(self.nodes, sort_keys=False, indent=3, separators=(',', ' : '), default=str)  
         return ' '.join([namestr, jsonstr])
       
     def append(self, *nodes): 
