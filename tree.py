@@ -65,38 +65,30 @@ class Node(object):
         other.addchild(self)     
 
  
-class Tree(object):
+class Tree(dict):
     def __init__(self, key, name=None):
-        self.__name = name        
         self.__key = key
-        self.__nodes = {}
+        self.__name = name         
+        super().__init__({})
 
     @property
     def name(self): return self.__name
     @property
     def key(self): return self.__key
-    @property
-    def nodes(self): return self.__nodes
-        
-    def __len__(self): return len(self.nodes)
-    def __contains__(self, nodekey): return nodekey in self.nodes.keys()
-    def __getitem__(self, nodekey): return self.nodes[nodekey]
-    
-    def __iter__(self):
-        for key, value in self.nodes.items(): yield key, value
     
     def __repr__(self): 
         if self.name: return "{}(key='{}', name='{}')".format(self.__class__.__name__, self.key, self.name)
         else: return "{}(key='{}')".format(self.__class__.__name__, self.key)    
     def __str__(self): 
         namestr = '{} ("{}")'.format(self.name if self.name else self.__class__.__name__, self.key)
-        jsonstr = json.dumps(self.nodes, sort_keys=False, indent=3, separators=(',', ' : '), default=str)  
+        jsonstr = json.dumps(self, sort_keys=False, indent=3, separators=(',', ' : '), default=str)  
         return ' '.join([namestr, jsonstr])
-      
-    def append(self, *nodes): 
-        assert all([isinstance(node, Node) for node in nodes])
-        self.__nodes.update({node.key:node for node in nodes})
-
+       
+    def __iadd__(self, other):
+        assert isinstance(other, type(self))
+        self.update(other)
+        return self  
+    
 
 class Renderer(object):
     def __init__(self, style='double', extend=0):
