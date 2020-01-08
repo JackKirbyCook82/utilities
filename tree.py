@@ -65,16 +65,20 @@ class Node(object):
         other.addchild(self)     
 
  
-class Tree(dict):
+class Tree(object):
     def __init__(self, key, name=None):
         self.__key = key
-        self.__name = name         
-        super().__init__({})
+        self.__name = name
+        self.__nodes = {}         
 
     @property
     def name(self): return self.__name
     @property
     def key(self): return self.__key
+    
+    def __getitem__(self, nodekey): return self.__nodes[nodekey]
+    def __iter__(self): 
+        for nodekey, node in self.__nodes.items(): yield nodekey, node
     
     def __repr__(self): 
         if self.name: return "{}(key='{}', name='{}')".format(self.__class__.__name__, self.key, self.name)
@@ -84,9 +88,14 @@ class Tree(dict):
         jsonstr = json.dumps(self, sort_keys=False, indent=3, separators=(',', ' : '), default=str)  
         return ' '.join([namestr, jsonstr])
        
+    def append(self, *nodes):
+        assert all([isinstance(node, Node) for node in nodes])
+        assert not any([nodekey in self.__nodes.keys() for nodekey in [node.key for node in nodes]])
+        self.__nodes.update({node.key:node for node in nodes})
+        
     def __iadd__(self, other):
         assert isinstance(other, type(self))
-        self.update(other)
+        self.append(*[node for nodekey, node in iter(other)])
         return self  
     
 
