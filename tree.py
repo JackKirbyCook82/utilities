@@ -77,6 +77,7 @@ class Tree(object):
     def key(self): return self.__key
     
     def __getitem__(self, nodekey): return self.__nodes[nodekey]
+    def __contains__(self, nodekey): return nodekey in self.__nodes.keys()
     def __iter__(self): 
         for nodekey, node in self.__nodes.items(): yield nodekey, node
     
@@ -100,7 +101,10 @@ class Tree(object):
     
 
 class Renderer(object):
+    def __repr__(self): return "{}(style='{}', extend={})".format(self.__class__.__name__, self.__style, self.__extend)  
     def __init__(self, style='double', extend=0):
+        self.__style = style
+        self.__extend = extend
         self.__branch = _STYLES[style]['branch'] + _STYLES[style]['branch'][-1] * extend
         self.__terminate = _STYLES[style]['terminate'] + _STYLES[style]['terminate'][-1] * extend
         self.__run = _STYLES[style]['run'] + _STYLES[style]['run'][-1] * extend
