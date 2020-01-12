@@ -16,7 +16,7 @@ import utilities.narrays as nar
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
 __all__ = ['xarray_fromdataframe', 'xarray_fromvalues', 'summation', 'average', 'stdev', 'minimum', 'maximum', 'wtaverage', 'wtstdev', 'wtmedian', 'groupby',
-           'normalize', 'standardize', 'minmax', 'interpolate', 'lower_cumulate', 'upper_cumulate', 'lower_uncumulate', 'upper_uncumulate', 'moving_average', 'moving_summation']
+           'normalize', 'standardize', 'minmax', 'absolute', 'interpolate', 'lower_cumulate', 'upper_cumulate', 'lower_uncumulate', 'upper_uncumulate', 'moving_average', 'moving_summation']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
@@ -120,24 +120,28 @@ def groupby(dataarray, *args, axis, agg, axisgroups={}, **kwargs):
 
 # BROADCASTING
 @dataarray_function
-def normalize(dataarray, *args, axis, **kwargs):
+def normalize(dataarray, *args, axis=None, **kwargs):
     xtotal = summation(dataarray, *args, axis=axis, **kwargs)
     function = lambda x, t: np.divide(x, t)
     return xr.apply_ufunc(function, dataarray, xtotal, keep_attrs=True)
 
 @dataarray_function
-def standardize(dataarray, *args, axis, **kwargs):
+def standardize(dataarray, *args, axis=None, **kwargs):
     xmean = average(dataarray, *args, axis=axis, **kwargs)
     xstd = stdev(dataarray, *args, axis=axis, **kwargs)
     function = lambda x, m, s: np.divide(np.subtract(x, m), s)
     return xr.apply_ufunc(function, dataarray, xmean, xstd, keep_attrs=True)
 
 @dataarray_function
-def minmax(dataarray, *args, axis, **kwargs):
+def minmax(dataarray, *args, axis=None, **kwargs):
     xmin = minimum(dataarray, *args, axis=axis, **kwargs)
     xmax = maximum(dataarray, *args, axis=axis, **kwargs)
     function = lambda x, mi, ma: np.divide(np.subtract(x, mi), np.subtract(ma, mi))
     return xr.apply_ufunc(function, dataarray, xmin, xmax, keep_attrs=True) 
+
+@dataarray_function
+def absolute(dataarary, *args, **kwargs):
+    return xr.apply_ufunc(np.abs, dataarary, keep_attrs=True)
 
 @dataarray_function
 def interpolate(dataarray, *args, values, axis, how, fill, **kwargs):

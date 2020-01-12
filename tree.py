@@ -86,7 +86,8 @@ class Tree(object):
         else: return "{}(key='{}')".format(self.__class__.__name__, self.key)    
     def __str__(self): 
         namestr = '{} ("{}")'.format(self.name if self.name else self.__class__.__name__, self.key)
-        jsonstr = json.dumps(self, sort_keys=False, indent=3, separators=(',', ' : '), default=str)  
+        content = {key:str(value) for key, value in self.__nodes.items()}
+        jsonstr = json.dumps(content, sort_keys=False, indent=3, separators=(',', ' : '), default=str)  
         return ' '.join([namestr, jsonstr])
        
     def append(self, *nodes):
