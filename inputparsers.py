@@ -50,7 +50,7 @@ class InputParser(object):
     def __repr__(self): return "{}(assignproxy='{}', spaceproxy='{}')".format(self.__class__.__name__, self.__assignproxy, self.__spaceproxy)
     def __str__(self):   
         argsjsonstr = json.dumps(self.inputArgs, sort_keys=False, indent=3, separators=(',', ' : '), default=str)     
-        parmsjsonstr =    json.dumps(self.inputParms, sort_keys=False, indent=3, separators=(',', ' : '), default=str)            
+        parmsjsonstr = json.dumps(self.inputParms, sort_keys=False, indent=3, separators=(',', ' : '), default=str)            
         return '\n'.join([' '.join(['Input Arguments', argsjsonstr]), ' '.join(['Input Parameters', parmsjsonstr])]) 
             
     def __call__(self, *sysArgs):
