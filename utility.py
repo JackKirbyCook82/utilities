@@ -16,15 +16,15 @@ __copyright__ = "Copyright 2020, Jack Kirby Cook"
 __license__ = ""
 
 
-_aslist = lambda items: [items] if not isinstance(items, (list, tuple)) else list(items)
-_normalize = lambda items: np.array(items) / np.linalg.norm(np.array(items))
-
-_indexfunctions = {
+INDEXFUNCTIONS = {
     'inverted': lambda a, b, w, x: a / np.sum(np.multiply(w, np.divide(x, b))),
     'tangent': lambda a, b, w, x: a * np.multiply(w, np.tan((np.pi/2) * np.divide(x, b))), 
     'logarithm': lambda a, b, w, x: a * np.log(np.sum(np.multiply(w, np.divide(x, b))) + 1)}   
-_functions = {
+UTILITYFUNCTIONS = {
     'cobbdouglas': lambda a, b, c, w, x: a * np.power(np.prod(np.power(np.subtract(x, b), w)), c)}
+
+_aslist = lambda items: [items] if not isinstance(items, (list, tuple)) else list(items)
+_normalize = lambda items: np.array(items) / np.linalg.norm(np.array(items))
 
 
 class UtilityIndex(ABC): 
@@ -33,6 +33,7 @@ class UtilityIndex(ABC):
     @abstractmethod
     def execute(self, *args, **kwargs): pass
         
+    def __repr__(self): return '{}(amplitude={}, tolerances={})'.format(self.__class__.__name__, self.amplitude, self.tolerances)
     def __init__(self, amplitude=1, tolerances={}): 
         assert isinstance(tolerances, dict)
         self.amplitude = amplitude
@@ -52,7 +53,7 @@ class UtilityIndex(ABC):
         assert isinstance(parameter_weights, dict)
         parameters = list(parameter_weights.keys())
         weights = _normalize(parameter_weights.values())
-        attrs = dict(parameters=parameters, weights=weights, functiontype=functiontype, function=_indexfunctions[functiontype])
+        attrs = dict(parameters=parameters, weights=weights, functiontype=functiontype, function=INDEXFUNCTIONS[functiontype])
         def wrapper(subclass): return type(subclass.__name__, (subclass, cls), attrs)
         return wrapper
 
@@ -70,7 +71,7 @@ class UtilityFunction(ABC):
     @classmethod
     def create(cls, functiontype):
         if cls != UtilityFunction: raise NotImplementedError('{}.{}()'.format(cls.__name__, 'create'))   
-        attrs = dict(functiontype=functiontype, function=_functions[functiontype])
+        attrs = dict(functiontype=functiontype, function=UTILITYFUNCTIONS[functiontype])
         def wrapper(subclass): return type(subclass.__name__, (subclass, cls), attrs)
         return wrapper
 
@@ -80,7 +81,8 @@ class UtilityFunction(ABC):
 class CobbDouglas_UtilityFunction(UtilityFunction):
     @property
     def coefficients(self): return self.amplitude, self.subsistences, self.diminishrate    
-   
+    
+    def __repr__(self): return '{}(amplitude={}, subsistences={}, weights={}, diminishrate={})'.format(self.__class__.__name__, self.amplitude, self.subsistences, self.weights, self.tolerances)
     def __init__(self, parameters, amplitude=1, subsistences={}, weights={}, diminishrate=1):
         assert all([isinstance(items, dict) for items in (parameters, subsistences, weights)])
         self.parameters, self.indexes = parameters.keys(), parameters.values()

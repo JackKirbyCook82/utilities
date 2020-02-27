@@ -10,7 +10,7 @@ from collections import OrderedDict as ODict
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['SliceOrderedDict']
+__all__ = ['CallSliceOrderedDict', 'SliceOrderedDict']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
@@ -65,5 +65,10 @@ class SliceOrderedDict(ODict):
         return self
 
 
-
+class CallSliceOrderedDict(SliceOrderedDict):
+    def __call__(self, key):
+        def wrapper(value): 
+            self[key] = value
+            return value
+        return wrapper
 
