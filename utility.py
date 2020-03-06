@@ -76,13 +76,15 @@ class UtilityFunction(ABC):
         return wrapper
 
 
-
 @UtilityFunction.create('cobbdouglas')
 class CobbDouglas_UtilityFunction(UtilityFunction):
     @property
     def coefficients(self): return self.amplitude, self.subsistences, self.diminishrate    
     
-    def __repr__(self): return '{}(amplitude={}, subsistences={}, weights={}, diminishrate={})'.format(self.__class__.__name__, self.amplitude, self.subsistences, self.weights, self.tolerances)
+    def __repr__(self): 
+        fmt = '{}(amplitude={}, subsistences={}, weights={}, diminishrate={})'
+        return fmt.format(self.__class__.__name__, self.amplitude, self.subsistences, self.weights, self.tolerances)
+    
     def __init__(self, parameters, amplitude=1, subsistences={}, weights={}, diminishrate=1):
         assert all([isinstance(items, dict) for items in (parameters, subsistences, weights)])
         self.parameters, self.indexes = parameters.keys(), parameters.values()
