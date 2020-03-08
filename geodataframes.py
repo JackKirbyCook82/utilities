@@ -21,7 +21,7 @@ _filterempty = lambda items: [item for item in _aslist(items) if item]
 
 
 # FACTORY
-_geoids = lambda geography: [geography[slice(0, i+1)].geoid for i in reversed(range(len(geography)))]
+_geoids = lambda geography: [geography[slice(0, i+1)].geoID for i in reversed(range(len(geography)))]
 _shapedirname = lambda shape, geoid, year: '_'.join(_filterempty([shape, geoid.replace('X', ''), str(year)]))
 _shapedirnames = lambda shape, geography, year: [_shapedirname(shape, geoid, year) for geoid in _geoids(geography)] + [_shapedirname(shape, '', year)]
 
