@@ -24,8 +24,7 @@ UTILITYFUNCTIONS = {
     'cobbdouglas': lambda a, b, c, w, x: a * np.power(np.prod(np.power(np.subtract(x, b), w)), c)}
 
 _aslist = lambda items: [items] if not isinstance(items, (list, tuple)) else list(items)
-_normalize = lambda items: np.array(items) / np.linalg.norm(np.array(items))
-
+_normalize = lambda items: np.array(items) / np.sum(np.array(items))
 
 class UtilityIndex(ABC): 
     @property
