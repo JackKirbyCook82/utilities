@@ -40,7 +40,7 @@ def xarray_fromdataframe(data, *args, datakeys=[], datakey=None, aggs={}, fills=
     data = data.set_index(axeskeys, drop=True)[datakeys] 
     aggs = {key:_AGGREGATIONS[aggkey] for key, aggkey in aggs.items() if key in datakeys}
     if aggs: data = data.groupby(axeskeys).agg(aggs, axis=1)
-
+    
     if len(datakeys) == 1 and not forcedataset:
         dataarray = xr.DataArray.from_series(data).fillna(fills)   
         dataarray.name = datakeys[0]
