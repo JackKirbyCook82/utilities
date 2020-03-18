@@ -11,12 +11,13 @@ import xarray as xr
 from functools import update_wrapper
 from collections import OrderedDict as ODict
 
+from utilities.dispatchers import keyword_singledispatcher as keyword_dispatcher
 import utilities.narrays as nar
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
 __all__ = ['xarray_fromdataframe', 'xarray_fromvalues', 'summation', 'average', 'stdev', 'minimum', 'maximum', 'wtaverage', 'wtstdev', 'wtmedian', 'groupby',
-           'normalize', 'standardize', 'minmax', 'absolute', 'interpolate', 'lower_cumulate', 'upper_cumulate', 'lower_uncumulate', 'upper_uncumulate', 'moving_average', 'moving_summation']
+           'normalize', 'standardize', 'minmax', 'absolute', 'interpolate', 'lower_cumulate', 'upper_cumulate', 'lower_uncumulate', 'upper_uncumulate', 'moving_average', 'moving_summation', 'moving_difference']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
@@ -78,6 +79,19 @@ def dataarray_function(function):
         return newdataarray
     update_wrapper(wrapper, function)
     return wrapper
+
+@keyword_dispatcher('fill')
+def fillcurve(*args, **kwargs): 
+    return {'bounds_error':True}
+
+@fillcurve.register('extrapolate')
+def extrapolate_fillcurve(*args, **kwargs): 
+    return {'fill_value':'extrapolate', 'bounds_error':False}
+
+@fillcurve.register('bound')
+def bounds_fillcurve(*args, direction, bounds, **kwargs): 
+    bounds = {'upper':tuple(bounds[::-1]), 'lower':tuple(bounds[:])}[direction]
+    return {'fill_value':bounds, 'bounds_error':False}
 
 
 # REDUCTIONS
@@ -144,13 +158,13 @@ def absolute(dataarary, *args, **kwargs):
     return xr.apply_ufunc(np.abs, dataarary, keep_attrs=True)
 
 @dataarray_function
-def interpolate(dataarray, *args, values, axis, how, fill, **kwargs):
-    return dataarray.interp(**{axis:values}, how=how) 
+def interpolate(dataarray, *args, values, axis, how, **kwargs):
+    return dataarray.interp(**{axis:values}, method=how, kwargs=fillcurve(*args, **kwargs)) 
 
 # ROLLING
 @dataarray_function
 def upper_cumulate(dataarray, *args, axis, **kwargs): 
-    return dataarray[{axis:slice(None, None, -1)}].cumsum(dim=axis, keep_attrs=True)[{axis:slice(None, None, -1)}] 
+    return lower_cumulate(dataarray[{axis:slice(None, None, -1)}], *args, axis=axis, **kwargs)[{axis:slice(None, None, -1)}]
 
 @dataarray_function
 def lower_cumulate(dataarray, *args, axis, **kwargs): 
@@ -158,15 +172,14 @@ def lower_cumulate(dataarray, *args, axis, **kwargs):
  
 @dataarray_function
 def upper_uncumulate(dataarray, *args, axis, **kwargs): 
-    subfunction = lambda x: [x[0]] + [x - y for x, y in zip(x[1:], x[:-1])]
-    function = lambda x: subfunction(x[::-1])[::-1]
-    return xr.apply_ufunc(function, dataarray, input_core_dims=[[axis]], output_core_dims=[[axis]], keep_attrs=True)  
+    return lower_uncumulate(dataarray[{axis:slice(None, None, -1)}], *args, axis=axis, **kwargs)[{axis:slice(None, None, -1)}]
 
 @dataarray_function
-def lower_uncumulate(dataarray, *args, axis, **kwargs): 
-    subfunction = lambda x: [x[0]] + [x - y for x, y in zip(x[1:], x[:-1])]
-    function = lambda x: subfunction(x)
-    return xr.apply_ufunc(function, dataarray, input_core_dims=[[axis]], output_core_dims=[[axis]], keep_attrs=True)
+def lower_uncumulate(dataarray, *args, axis,  total, **kwargs): 
+    diffdataarray = moving_difference(dataarray, *args, axis=axis, period=1, **kwargs)
+    residdataarray = total - summation(diffdataarray, *args, axis=axis, **kwargs)
+    residdataarray = residdataarray.assign_coords({axis:dataarray.coords[axis].values[0]})
+    return xr.concat([residdataarray, diffdataarray], dim=axis, data_vars='all')         
 
 @dataarray_function
 def moving_average(dataarray, *args, axis, period, **kwargs):
@@ -182,8 +195,13 @@ def moving_summation(dataarray, *args, axis, period, **kwargs):
     newdataarray = dataarray.rolling(**{axis:period+1}, center=True).sum().dropna(axis, how='all')
     return newdataarray
 
-    
-
+@dataarray_function
+def moving_difference(dataarray, *args, axis, period, **kwargs):
+    assert isinstance(period, int)
+    assert len(dataarray.coords[axis].values) >= period
+    maxdataarray = dataarray.rolling(**{axis:period+1}, center=True).max().dropna(axis, how='all')
+    mindataarray = dataarray.rolling(**{axis:period+1}, center=True).min().dropna(axis, how='all')
+    return maxdataarray - mindataarray
 
 
 

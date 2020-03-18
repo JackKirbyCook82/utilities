@@ -19,21 +19,21 @@ __license__ = ""
 
 
 #SUPPORT
-@keyword_dispatcher('method')
-def fillcurve(*args, **kwargs): return None
+@keyword_dispatcher('fill')
+def fillcurve(*args, **kwargs): 
+    return {'bounds_error':True}
 
 @fillcurve.register('extrapolate')
 def extrapolate_fillcurve(*args, **kwargs): 
-    return 'extrapolate'
+    return {'fill_value':'extrapolate', 'bounds_error':False}
 
 @fillcurve.register('bound')
 def bounds_fillcurve(*args, direction, bounds, **kwargs): 
-    return {'upper': tuple(bounds[::-1]), 'lower': tuple(bounds[:])}[direction]
+    bounds = {'upper':tuple(bounds[::-1]), 'lower':tuple(bounds[:])}[direction]
+    return {'fill_value':bounds, 'bounds_error':False}
 
-
-def curve(x, y, *args, how, fill={}, **kwargs): 
-    fillvalue = fillcurve(*args, **fill, **kwargs)    
-    return interp1d(x, y, kind=how, fill_value=fillvalue, bounds_error=False if fillvalue else True)
+def curve(x, y, *args, how, **kwargs):  
+    return interp1d(x, y, kind=how, **fillcurve(*args, **kwargs))
     
 
 def wtaverage_vector(vector, weights):
