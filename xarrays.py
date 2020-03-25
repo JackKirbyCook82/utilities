@@ -81,17 +81,11 @@ def dataarray_function(function):
     return wrapper
 
 @keyword_dispatcher('fill')
-def fillcurve(*args, **kwargs): 
-    return {'bounds_error':True}
-
+def fillcurve(*args, **kwargs): return {'bounds_error':True}
 @fillcurve.register('extrapolate')
-def extrapolate_fillcurve(*args, **kwargs): 
-    return {'fill_value':'extrapolate', 'bounds_error':False}
-
+def extrapolate_fillcurve(*args, **kwargs): return {'fill_value':'extrapolate', 'bounds_error':False}
 @fillcurve.register('bound')
-def bounds_fillcurve(*args, direction, bounds, **kwargs): 
-    bounds = {'upper':tuple(bounds[::-1]), 'lower':tuple(bounds[:])}[direction]
-    return {'fill_value':bounds, 'bounds_error':False}
+def bounds_fillcurve(*args, bounds, **kwargs): return {'fill_value':bounds, 'bounds_error':False}
 
 
 # REDUCTIONS
