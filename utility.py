@@ -34,12 +34,14 @@ class UtilityIndex(ABC):
     def execute(self, *args, **kwargs): pass
         
     def __repr__(self): return '{}(amplitude={}, tolerances={})'.format(self.__class__.__name__, self.amplitude, self.tolerances)
+    def __hash__(self): return hash((self.__class__.__name__, self.functiontype, self.amplitude, tuple(self.tolerances), tuple(self.parameters), tuple(self.weights),))
+    def __len__(self): return len(self.parameters)
+   
     def __init__(self, amplitude=1, tolerances={}): 
         assert isinstance(tolerances, dict)
         self.amplitude = amplitude
         self.tolerances = np.array([tolerances.get(parm, 1) for parm in self.parameters])    
  
-    def __len__(self): return len(self.parameters)
     def __call__(self, *args, **kwargs): 
         parameters = self.execute(*args, **kwargs)
         assert all([parameter in parameters.keys() for parameter in self.parameters])
@@ -73,9 +75,8 @@ class CobbDouglas_UtilityFunction(UtilityFunction):
     @property
     def coefficients(self): return self.amplitude, self.subsistences, self.diminishrate    
     
-    def __repr__(self): 
-        fmt = '{}(amplitude={}, subsistences={}, weights={}, diminishrate={})'
-        return fmt.format(self.__class__.__name__, self.amplitude, self.subsistences, self.weights, self.tolerances)
+    def __repr__(self): return  '{}(amplitude={}, subsistences={}, weights={}, diminishrate={})'.format(self.__class__.__name__, self.amplitude, self.subsistences, self.weights, self.tolerances)
+    def __hash__(self): return hash((self.__class__.__name__, self.functiontype, self.amplitude, self.diminishrate, tuple(self.subsistences), tuple(self.weights), tuple(self.parameters), tuple([hash(index) for index in self.indexes]),))
     
     def __init__(self, parameters, *args, amplitude=1, subsistences={}, weights={}, diminishrate=1, **kwargs):
         assert all([isinstance(items, dict) for items in (parameters, subsistences, weights)])
