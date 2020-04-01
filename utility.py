@@ -68,14 +68,14 @@ class UtilityFunction(ABC):
     def __call__(self, *args, **kwargs): 
         x = np.array([index(*args, **kwargs) for parameter, index in zip(self.parameters, self.indexes)])
         y = self.function(*self.coefficients, self.weights, x)
-        return y        
+        return y              
     
 
 class CobbDouglas_UtilityFunction(UtilityFunction):
     @property
     def coefficients(self): return self.amplitude, self.subsistences, self.diminishrate    
     
-    def __repr__(self): return  '{}(amplitude={}, subsistences={}, weights={}, diminishrate={})'.format(self.__class__.__name__, self.amplitude, self.subsistences, self.weights, self.tolerances)
+    def __repr__(self): return '{}(amplitude={}, subsistences={}, weights={}, diminishrate={})'.format(self.__class__.__name__, self.amplitude, self.subsistences, self.weights, self.tolerances)
     def __hash__(self): return hash((self.__class__.__name__, self.functiontype, self.amplitude, self.diminishrate, tuple(self.subsistences), tuple(self.weights), tuple(self.parameters), tuple([hash(index) for index in self.indexes]),))
     
     def __init__(self, parameters, *args, amplitude=1, subsistences={}, weights={}, diminishrate=1, **kwargs):
@@ -85,8 +85,8 @@ class CobbDouglas_UtilityFunction(UtilityFunction):
         self.subsistences = np.array([subsistences.get(parm, 0) for parm in self.parameters])
         self.weights = _normalize(np.array([weights.get(parm, 0) for parm in self.parameters]))
         
-    
 
+    
 
 
     

@@ -66,10 +66,10 @@ class Node(object):
 
  
 class Tree(object):
-    def __init__(self, key, name=None):
+    def __init__(self, key, nodes={}, name=None):
         self.__key = key
         self.__name = name
-        self.__nodes = {}         
+        self.__nodes = nodes
 
     @property
     def name(self): return self.__name
@@ -90,16 +90,6 @@ class Tree(object):
         jsonstr = json.dumps(content, sort_keys=False, indent=3, separators=(',', ' : '), default=str)  
         return ' '.join([namestr, jsonstr])
        
-    def append(self, *nodes):
-        assert all([isinstance(node, Node) for node in nodes])
-        assert not any([nodekey in self.__nodes.keys() for nodekey in [node.key for node in nodes]])
-        self.__nodes.update({node.key:node for node in nodes})
-        
-    def __iadd__(self, other):
-        assert isinstance(other, type(self))
-        self.append(*[node for nodekey, node in iter(other)])
-        return self  
-    
 
 class Renderer(object):
     def __repr__(self): return "{}(style='{}', extend={})".format(self.__class__.__name__, self.__style, self.__extend)  
