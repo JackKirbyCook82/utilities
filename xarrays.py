@@ -142,8 +142,8 @@ def standardize(dataarray, *args, axis=None, **kwargs):
 
 @dataarray_function
 def minmax(dataarray, *args, axis=None, **kwargs):
-    xmin = minimum(dataarray, *args, axis=axis, **kwargs)
-    xmax = maximum(dataarray, *args, axis=axis, **kwargs)
+    xmin = kwargs.get('minimum', minimum(dataarray, *args, axis=axis, **kwargs))
+    xmax = kwargs.get('maximum', maximum(dataarray, *args, axis=axis, **kwargs))
     function = lambda x, mi, ma: np.divide(np.subtract(x, mi), np.subtract(ma, mi))
     return xr.apply_ufunc(function, dataarray, xmin, xmax, keep_attrs=True) 
 
