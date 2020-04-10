@@ -16,8 +16,7 @@ import utilities.narrays as nar
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['xarray_fromdataframe', 'xarray_fromvalues', 'summation', 'average', 'stdev', 'minimum', 'maximum', 'wtaverage', 'wtstdev', 'wtmedian', 'groupby',
-           'normalize', 'standardize', 'minmax', 'absolute', 'interpolate', 'lower_cumulate', 'upper_cumulate', 'lower_uncumulate', 'upper_uncumulate', 'moving_average', 'moving_summation', 'moving_difference']
+__all__ = []
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
@@ -154,6 +153,7 @@ def absolute(dataarary, *args, **kwargs):
 @dataarray_function
 def interpolate(dataarray, *args, values, axis, how, **kwargs):
     return dataarray.interp(**{axis:values}, method=how, kwargs=fillcurve(*args, **kwargs)) 
+
 
 # ROLLING
 @dataarray_function

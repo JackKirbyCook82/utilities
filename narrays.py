@@ -13,7 +13,7 @@ from utilities.dispatchers import keyword_singledispatcher as keyword_dispatcher
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['curve', 'inversion', 'interpolation', 'cumulate', 'uncumulate', 'movingaverage', 'movingtotal', 'wtaverage', 'wtstdev']
+__all__ = []
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
@@ -98,6 +98,27 @@ def wtstdev(narray, *args, index, weights, **kwargs):
 def wtmedian(narray, *args, index, weights, **kwargs): 
     return np.apply_along_axis(wtmedian_vector, index, narray, weights)
 
+
+# EXPANSION
+@keyword_dispatcher('how')
+def expand(narray, *args, index, expansions, how, **kwargs): raise KeyError(how)
+    
+@expand.register('equaldivision')
+def _expand_equaldivision(narray, *args, index, expansions, **kwargs):
+    assert isinstance(expansions, (tuple, list))
+    assert narray.shape[index] == len(expansions)
+    items = np.split(narray, narray.shape[index])
+    items = [np.broadcast_to(item, narray.shape)/narray.shape for item in items]
+    return np.concatenate(items, axis=index)
+
+@expand.register('equalbroadcast')
+def _expand_equalbroadcast(narray, *args, index, expansions, **kwargs):
+    assert isinstance(expansions, (tuple, list))
+    assert narray.shape[index] == len(expansions)    
+    items = np.split(narray, narray.shape[index])
+    items = [np.broadcast_to(item, narray.shape) for item in items]
+    return np.concatenate(items, axis=index)
+    
 
 # ROLLING
 def cumulate(narray, *args, index, direction, **kwargs):
