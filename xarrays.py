@@ -35,7 +35,6 @@ def xarray_fromdataframe(data, *args, datakeys=[], datakey=None, aggs={}, fills=
     
     axeskeys = [key for key in data.columns if key not in datakeys]
     axeskeys.sort(key=lambda key: len(set(data[key].values)))
-    for key in axeskeys: data.loc[:, key] = data[key].apply(str)
 
     data = data.set_index(axeskeys, drop=True)[datakeys] 
     aggs = {key:_AGGREGATIONS[aggkey] for key, aggkey in aggs.items() if key in datakeys}
