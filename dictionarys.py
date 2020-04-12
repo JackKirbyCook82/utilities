@@ -16,8 +16,7 @@ __license__ = ""
 
 
 class SliceOrderedDict(ODict):   
-    def __hash__(self): return hash(tuple([(key, value) for key, value in self.items()]))
-    
+    def __hash__(self): return hash(tuple([(key, value) for key, value in self.items()]))    
     def __getitem__(self, key): 
         if isinstance(key, str): return super().__getitem__(key)        
         elif isinstance(key, slice): return self.__readslice(key)
@@ -46,6 +45,16 @@ class SliceOrderedDict(ODict):
         if pop: del self[key]
         return value
 
+    def aslist(self): return [(key, value) for key, value in self.items()]
+    def astuple(self): return tuple(self.aslist())
+
+    # EQUALITY
+    def __lt__(self, other): return self.astuple() < other.astuple()
+    def __gt__(self, other): return self.astuple() > other.astuple()
+    def __le__(self, other): return self.__lt__(other) or self.__eq__(other)
+    def __ge__(self, other): return self.__gt__(other) or self.__eq__(other)
+
+    # METHODS
     def pop(self, key, default=None):
         if isinstance(key, str): return super().pop(key, default)
         elif isinstance(key, int): return self.__retrieve(key, pop=True)
