@@ -9,7 +9,6 @@ Created on Sat Aug 11 2018
 import numpy as np
 import pandas as pd
 import xarray as xr
-from itertools import product
 from functools import update_wrapper
 from collections import OrderedDict as ODict
 
