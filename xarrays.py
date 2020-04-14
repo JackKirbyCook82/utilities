@@ -7,7 +7,9 @@ Created on Sat Aug 11 2018
 """
 
 import numpy as np
+import pandas as pd
 import xarray as xr
+from itertools import product
 from functools import update_wrapper
 from collections import OrderedDict as ODict
 
@@ -25,46 +27,41 @@ _AGGREGATIONS = {'sum':np.sum, 'avg':np.mean, 'max':np.max, 'min':np.min}
 
 _aslist = lambda items: [items] if not isinstance(items, (list, tuple)) else list(items)
 _flatten = lambda nesteditems: [item for items in nesteditems for item in items]
+_forceframe = lambda table: table.to_frame() if not isinstance(table, pd.DataFrame) else table
 
 
-# FACTORY
-def xarray_fromdataframe(data, *args, datakeys=[], datakey=None, aggs={}, fills={}, forcedataset=True, attrs={}, **kwargs):
-    assert isinstance(attrs, dict)
-    datakeys = [key for key in [*_aslist(datakey), *_aslist(datakeys)] if key]
-    assert all([key in data.columns for key in datakeys])
+# FACTORY 
+def xarray_fromdataframe(dataframe, *args, datakeys, attrs={}, aggs={}, forcedataset=True, **kwargs):
+    assert all([key in dataframe.columns for key in datakeys])
     
-    axeskeys = [key for key in data.columns if key not in datakeys]
-    axeskeys.sort(key=lambda key: len(set(data[key].values)))
+    axeskeys = [key for key in dataframe.columns if key not in datakeys]
+    axeskeys.sort(key=lambda key: len(set(dataframe[key].values)))
 
-    data = data.set_index(axeskeys, drop=True)[datakeys] 
+    dataframe = dataframe.set_index(axeskeys, drop=True)[datakeys[0] if len(datakeys) == 1 else list(datakeys)] 
+    dataframe = _forceframe(dataframe)
     aggs = {key:_AGGREGATIONS[aggkey] for key, aggkey in aggs.items() if key in datakeys}
-    if aggs: data = data.groupby(axeskeys).agg(aggs, axis=1)
+    if aggs: dataframe = dataframe.groupby(axeskeys).agg(aggs, axis=1)
     
-    if len(datakeys) == 1 and not forcedataset:
-        dataarray = xr.DataArray.from_series(data).fillna(fills)   
+    if len(dataframe.columns) == 1:
+        dataarray = xr.DataArray.from_series(dataframe.squeeze()) 
         dataarray.name = datakeys[0]
-        dataarray.attrs = attrs
-        return dataarray
-    else: 
-        dataset = xr.Dataset.from_dataframe(data).fillna(fills)
-        dataset.attrs = attrs
-        return dataset
-  
+        xarray = dataarray if not forcedataset else xr.Dataset({datakeys[0]:dataarray})
+    elif len(dataframe.columns) > 1: 
+        xarray =  xr.Dataset.from_dataframe(dataframe)
+    else: raise ValueError(dataframe.columns)         
+    xarray.attrs = attrs
+    return xarray
+    
 
-def xarray_fromvalues(data, *args, dims, scope, attrs, forcedataset=True, **kwargs): 
-    assert all([isinstance(item, dict) for item in (data, attrs)])
-    assert all([isinstance(dims, ODict) for item in (dims, scope)])
-    assert all([key not in dims.keys() for key in scope.keys()])
-    assert all([isinstance(items, np.ndarray) for items in data.values()])
-
-    if len(data) == 1 and not forcedataset:
-        dataarray = xr.DataArray(list(data.values())[0], coords=dims, dims=list(dims.keys()), attrs=attrs, name=list(data.keys())[0])
-        dataarray = dataarray.assign_coords(**scope)
-        return dataarray
-    else: 
-        dataset = xr.Dataset(data, coords=dims, dim=list(dims.keys()), attrs=attrs)
-        dataset = dataset.assign_coords(**scope)
-        return dataset
+def xarray_fromvalues(data, *args, axes, scope={}, attrs={}, forcedataset=True, **kwargs): 
+    assert isinstance(data, ODict) and isinstance(axes, ODict)
+    assert all([isinstance(item, np.ndarray) for item in data.values()])
+    dataarrays = {key:xr.DataArray(values, coords=axes, dims=list(axes.keys()), name=key) for key, values in data.items()}
+    if len(dataarrays) == 1 and not forcedataset: xarray = list(dataarrays.values())[0]
+    else: xarray = xr.Dataset(dataarrays)
+    xarray = xarray.assign_coords(**scope)
+    xarray.attrs = attrs
+    return xarray
 
 
 # SUPPORT
@@ -117,6 +114,7 @@ def wtmedian(dataarray, *args, axis, weights, **kwargs):
 # GROUPING
 @dataarray_function
 def groupby(dataarray, *args, axis, agg, axisgroups={}, **kwargs):
+    if all([key == value[0] and len(value) == 1 for key, value in axisgroups.items()]): return dataarray
     function = lambda x, newvalue: xr.apply_ufunc(_AGGREGATIONS[agg], x, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1}).assign_coords(**{axis:newvalue}).expand_dims(axis) 
     dataarrays = [dataarray.loc[{axis:_aslist(values)}] for values in axisgroups.values()] 
     dataarrays = [function(dataarray, newvalue) for dataarray, newvalue in zip(dataarrays, axisgroups.keys())]
