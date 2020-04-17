@@ -18,6 +18,9 @@ __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
 
+_replace = lambda items, index, replacement: [replacement if i == index else item for i, item in enumerate(items)]
+
+
 #SUPPORT
 @keyword_dispatcher('fill')
 def fillcurve(*args, **kwargs): 
@@ -108,7 +111,7 @@ def _expand_equaldivision(narray, *args, index, expansions, **kwargs):
     assert isinstance(expansions, (tuple, list))
     assert narray.shape[index] == len(expansions)
     items = np.split(narray, narray.shape[index])
-    items = [np.broadcast_to(item, narray.shape)/narray.shape for item in items]
+    items = [np.broadcast_to(item, _replace(narray.shape, index, expansion)) / expansion for item, expansion in zip(items, expansions)]
     return np.concatenate(items, axis=index)
 
 @expand.register('equalbroadcast')
@@ -116,7 +119,7 @@ def _expand_equalbroadcast(narray, *args, index, expansions, **kwargs):
     assert isinstance(expansions, (tuple, list))
     assert narray.shape[index] == len(expansions)    
     items = np.split(narray, narray.shape[index])
-    items = [np.broadcast_to(item, narray.shape) for item in items]
+    items = [np.broadcast_to(item, _replace(narray.shape, index, expansion)) for item, expansion in zip(items, expansions)]
     return np.concatenate(items, axis=index)
     
 

@@ -114,10 +114,16 @@ def wtmedian(dataarray, *args, axis, weights, **kwargs):
 @dataarray_function
 def groupby(dataarray, *args, axis, agg, axisgroups={}, **kwargs):
     if all([key == value[0] and len(value) == 1 for key, value in axisgroups.items()]): return dataarray
-    function = lambda x, newvalue: xr.apply_ufunc(_AGGREGATIONS[agg], x, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1}).assign_coords(**{axis:newvalue}).expand_dims(axis) 
     dataarrays = [dataarray.loc[{axis:_aslist(values)}] for values in axisgroups.values()] 
-    dataarrays = [function(dataarray, newvalue) for dataarray, newvalue in zip(dataarrays, axisgroups.keys())]
-    return xr.concat(dataarrays, axis)
+    newdataarrays = []
+    for dataarray, newvalue in zip(dataarrays, axisgroups.keys()):
+        newdataarray = xr.apply_ufunc(_AGGREGATIONS[agg], dataarray, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1})
+        try: newdataarray = newdataarray.assign_coords(**{axis:newvalue}).expand_dims(axis) 
+        except:        
+            newdataarray = newdataarray.assign_coords(**{axis:str(newvalue)}).expand_dims(axis)
+            newdataarray.coords[axis] = pd.Index([newvalue], name=axis) 
+        newdataarrays.append(newdataarray)
+    return xr.concat(newdataarrays, axis)
 
 
 # BROADCASTING
