@@ -17,9 +17,10 @@ __license__ = ""
 
 
 INDEXFUNCTIONS = {
-    'inverted': lambda a, b, w, x: a / np.sum(np.multiply(w, np.divide(x, b))),
-    'tangent': lambda a, b, w, x: a * np.multiply(w, np.tan((np.pi/2) * np.divide(x, b))), 
-    'logarithm': lambda a, b, w, x: a * np.log(np.sum(np.multiply(w, np.divide(x, b))) + 1)}   
+    'inverted': lambda t, w, x: np.sum(np.divide(np.divide(w, t), x)),
+    'tangent': lambda t, w, x: np.sum(np.multiply(np.divide(w, t), np.tan(x * np.pi/2))),
+    'rtangent': lambda t, w, x: np.sum(np.multiply(np.divide(w, t), np.tan((1 - x) * np.pi/2))),
+    'logarithm': lambda t, w, x: np.sum(np.multiply(np.divide(w, t), np.log(x + 1)))}
 UTILITYFUNCTIONS = {
     'cobbdouglas': lambda a, b, c, w, x: a * np.power(np.prod(np.power(np.subtract(x, b), w)), c)}
 
@@ -28,8 +29,6 @@ _normalize = lambda items: np.array(items) / np.sum(np.array(items))
 
 
 class UtilityIndex(ABC): 
-    @property
-    def coefficients(self): return self.amplitude, self.tolerances
     @abstractmethod
     def execute(self, *args, **kwargs): pass
         
@@ -44,9 +43,10 @@ class UtilityIndex(ABC):
  
     def __call__(self, *args, **kwargs): 
         parameters = self.execute(*args, **kwargs)
+        assert isinstance(parameters, dict)
         assert all([parameter in parameters.keys() for parameter in self.parameters])
         x = np.array([parameters[parameter] for parameter in self.parameters])
-        y = self.function(*self.coefficients, self.weights, x)
+        y = self.amplitude * self.function(self.tolerances, self.weights, x)
         return y
        
     @classmethod
@@ -60,20 +60,9 @@ class UtilityIndex(ABC):
         return wrapper
 
 
-class UtilityFunction(ABC):
-    @abstractmethod
-    def coefficients(self, *args, **kwargs): pass    
-
-    def __len__(self): return len(self.parameters)
-    def __call__(self, *args, **kwargs): 
-        x = np.array([index(*args, **kwargs) for parameter, index in zip(self.parameters, self.indexes)])
-        y = self.function(*self.coefficients, self.weights, x)
-        return y              
-    
-
-class CobbDouglas_UtilityFunction(UtilityFunction):
+class CobbDouglas_UtilityFunction(object):
     @property
-    def coefficients(self): return self.amplitude, self.subsistences, self.diminishrate    
+    def coefficients(self): return self.amplitude, self.subsistences, self.diminishrate, self.weights    
     
     def __repr__(self): return '{}(amplitude={}, subsistences={}, weights={}, diminishrate={})'.format(self.__class__.__name__, self.amplitude, self.subsistences, self.weights, self.tolerances)
     def __hash__(self): return hash((self.__class__.__name__, self.functiontype, self.amplitude, self.diminishrate, tuple(self.subsistences), tuple(self.weights), tuple(self.parameters), tuple([hash(index) for index in self.indexes]),))
@@ -84,6 +73,13 @@ class CobbDouglas_UtilityFunction(UtilityFunction):
         self.amplitude, self.diminishrate = amplitude, diminishrate
         self.subsistences = np.array([subsistences.get(parm, 0) for parm in self.parameters])
         self.weights = _normalize(np.array([weights.get(parm, 0) for parm in self.parameters]))
+        
+    def __len__(self): return len(self.parameters)
+    def __call__(self, *args, **kwargs): 
+        x = np.array([index(*args, **kwargs) for parameter, index in zip(self.parameters, self.indexes)])
+        y = self.function(*self.coefficients, x)
+        return y           
+        
         
 
     
