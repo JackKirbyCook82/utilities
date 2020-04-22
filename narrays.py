@@ -116,14 +116,14 @@ def distribution(narray, *args, index, values, function, **kwargs):
 def equaldivision(narray, *args, index, values, **kwargs):
     assert isinstance(values, (tuple, list))
     assert narray.shape[index] == len(values)
-    items = np.split(narray, narray.shape[index])
+    items = np.array_split(narray, narray.shape[index], axis=index)
     items = [np.broadcast_to(item, _replace(narray.shape, index, value)) / value for item, value in zip(items, values)]
     return np.concatenate(items, axis=index)
 
 def equalbroadcast(narray, *args, index, values, **kwargs):
     assert isinstance(values, (tuple, list))
     assert narray.shape[index] == len(values)    
-    items = np.split(narray, narray.shape[index])
+    items = np.split(narray, narray.shape[index], axis=index)
     items = [np.broadcast_to(item, _replace(narray.shape, index, value)) for item, value in zip(items, values)]
     return np.concatenate(items, axis=index)
     
