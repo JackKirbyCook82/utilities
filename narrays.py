@@ -19,7 +19,9 @@ __license__ = ""
 
 
 _replace = lambda items, index, replacement: [replacement if i == index else item for i, item in enumerate(items)]
-
+_bins = lambda x, grps: np.digitize(x, grps)
+_histogram = lambda x: np.unique(x, return_counts=True)
+    
 
 #SUPPORT
 @keyword_dispatcher('fill')
@@ -38,7 +40,6 @@ def bounds_fillcurve(*args, direction, bounds, **kwargs):
 def curve(x, y, *args, how, **kwargs):  
     return interp1d(x, y, kind=how, **fillcurve(*args, **kwargs))
     
-
 def wtaverage_vector(vector, weights):
     if all([np.isnan(x) for x in vector]): return np.nan    
     weights = [w for x, w in zip(vector, weights) if not np.isnan(x)]
@@ -79,6 +80,10 @@ def wtmedian_vector(vector, weights):
         if weights[idx] == midpoint: return np.mean(vector[idx:idx+2])
         else: return vector[idx+1]
 
+def distribution_function(size, values, function):
+    groups = {key:value for key, value in zip(*_histogram(_bins(function(size), values)))}
+    return [groups.get(i, 0) for i in range(len(values)+1)]   
+
 
 # BROADCASTING
 def inversion(narray, header, values, *args, index, **kwargs):
@@ -103,23 +108,23 @@ def wtmedian(narray, *args, index, weights, **kwargs):
 
 
 # EXPANSION
-@keyword_dispatcher('how')
-def expand(narray, *args, index, expansions, how, **kwargs): raise KeyError(how)
-    
-@expand.register('equaldivision')
-def _expand_equaldivision(narray, *args, index, expansions, **kwargs):
-    assert isinstance(expansions, (tuple, list))
-    assert narray.shape[index] == len(expansions)
+def distribution(narray, *args, index, values, function, **kwargs):
+    assert isinstance(values, (tuple, list))
+    assert narray.shape[index] == 1
+    return np.apply_along_axis(distribution_function, index, narray, values, function)
+
+def equaldivision(narray, *args, index, values, **kwargs):
+    assert isinstance(values, (tuple, list))
+    assert narray.shape[index] == len(values)
     items = np.split(narray, narray.shape[index])
-    items = [np.broadcast_to(item, _replace(narray.shape, index, expansion)) / expansion for item, expansion in zip(items, expansions)]
+    items = [np.broadcast_to(item, _replace(narray.shape, index, value)) / value for item, value in zip(items, values)]
     return np.concatenate(items, axis=index)
 
-@expand.register('equalbroadcast')
-def _expand_equalbroadcast(narray, *args, index, expansions, **kwargs):
-    assert isinstance(expansions, (tuple, list))
-    assert narray.shape[index] == len(expansions)    
+def equalbroadcast(narray, *args, index, values, **kwargs):
+    assert isinstance(values, (tuple, list))
+    assert narray.shape[index] == len(values)    
     items = np.split(narray, narray.shape[index])
-    items = [np.broadcast_to(item, _replace(narray.shape, index, expansion)) for item, expansion in zip(items, expansions)]
+    items = [np.broadcast_to(item, _replace(narray.shape, index, value)) for item, value in zip(items, values)]
     return np.concatenate(items, axis=index)
     
 
