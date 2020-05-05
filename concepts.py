@@ -24,7 +24,7 @@ def concept(name, fields):
     assert all([isinstance(field, str) for field in _aslist(fields)])     
      
     def __new__(cls, **kwargs): return super().__new__(cls, *[kwargs.get(field, None) for field in cls._fields])
-    def __getitem__(self, key): return self._asdict().items()[key]  
+    def __getitem__(self, key): return self.__getattr__(key)
     def __hash__(self): return hash((self.__class__.__name__, *[hash((concept, hash(getattr(self, field)),)) for field in self._fields]))
     
     @property
