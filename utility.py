@@ -31,11 +31,19 @@ _normalize = lambda items: np.array(items) / np.sum(np.array(items))
 class UtilityIndex(ABC): 
     @abstractmethod
     def execute(self, *args, **kwargs): pass
+
+    def tolerancesDict(self): return {parameter:tolerance for parameter, tolerance in zip(self.parameters, self.tolerances)}
+    def weightsDict(self): return {parameter:weight for parameter, weight in zip(self.parameters, self.weights)}
         
-    def __repr__(self): return '{}(amplitude={}, tolerances={})'.format(self.__class__.__name__, self.amplitude, self.tolerances)
-    def __hash__(self): return hash((self.__class__.__name__, self.functiontype, self.amplitude, tuple(self.tolerances), tuple(self.parameters), tuple(self.weights),))
+    def __repr__(self): 
+        string = '{}(functiontype={}, amplitude={}, tolerances={}, weights={})' 
+        return string.format(self.__class__.__name__, self.functiontype, self.amplitude, self.tolerancesDict(), self.weightsDict())
+    
+    def __hash__(self): 
+        coefficients = tuple([(parameter, tolerance, weight,) for parameter, tolerance, weight in zip(self.parameters, self.tolerances, self.weights)])
+        return hash((self.__class__.__name__, self.functionname, self.functiontype, self.amplitude, coefficients,))
+        
     def __len__(self): return len(self.parameters)
-   
     def __init__(self, amplitude=1, tolerances={}): 
         assert isinstance(tolerances, dict)
         self.amplitude = amplitude
@@ -70,14 +78,20 @@ class UtilityFunction(ABC):
     @abstractmethod
     def execute(self): pass
     
-    def __repr__(self): return '{}()'.format(self.__class__.__name__)
-    def __hash__(self): return hash((self.__class__.__name__, self.amplitude, self.diminishrate, tuple(self.subsistences), tuple(self.weights), tuple(self.parameters), tuple([hash(index) for index in self.indexes]),))
+    def __repr__(self): 
+        string = '{}(functiontype={}, indexes={})'
+        indexes = {parameter:repr(index) for parameter, index in zip(self.parameters, self.indexes)}
+        return string.format(self.__class__.__name__, self.functiontype, indexes)
     
+    def __hash__(self): 
+        indexes = tuple([(parameter, hash(index),) for parameter, index in zip(self.parameters, self.indexes)])
+        return hash((self.__class__.__name__, self.functiontype, indexes,))
+    
+    def __len__(self): return len(self.parameters)
     def __init__(self, parameters, *args, **kwargs):
         assert isinstance(parameters, dict)
         self.parameters, self.indexes = parameters.keys(), parameters.values()
-        
-    def __len__(self): return len(self.parameters)
+            
     def __call__(self, *args, **kwargs): 
         x = np.array([index(*args, **kwargs) for parameter, index in zip(self.parameters, self.indexes)])
         y = self.exeucte(x, *args, **kwargs)
@@ -101,9 +115,19 @@ class UtilityFunction(ABC):
 class CobbDouglas_UtilityFunction(UtilityFunction):
     @property
     def coefficients(self): return self.amplitude, self.subsistences, self.diminishrate, self.weights    
-    
-    def __repr__(self): return '{}(amplitude={}, subsistences={}, weights={}, diminishrate={})'.format(self.__class__.__name__, self.amplitude, self.subsistences, self.weights, self.tolerances)
-    def __hash__(self): return hash((self.__class__.__name__, tuple(self.parameters), tuple([hash(index) for index in self.indexes]),))
+
+    def subsistencesDict(self): return {parameter:subsistence for parameter, subsistence in zip(self.parameters, self.subsistences)}
+    def weightsDict(self): return {parameter:weight for parameter, weight in zip(self.parameters, self.weights)}
+ 
+    def __repr__(self): 
+        string = '{}(functiontype={}, amplitude={}, diminishrate={}, subsistences={}, weights={}, indexes={})'
+        indexes = {parameter:repr(index) for parameter, index in zip(self.parameters, self.indexes)}
+        return string.format(self.__class__.__name__, self.functiontype, self.amplitude, self.diminishrate, self.subsistencesDict(), self.weightsDict(), indexes)
+       
+    def __hash__(self): 
+        coefficients = tuple([(parameter, subsistence, weight,) for parameter, subsistence, weight in zip(self.parameters, self.subsistences, self.weights)])
+        indexes = tuple([(parameter, hash(index),) for parameter, index in zip(self.parameters, self.indexes)])
+        return hash((self.__class__.__name__, self.functiontype, self.amplitude, self.diminishrate, coefficients, indexes))
     
     def __init__(self, *args, amplitude=1, subsistences={}, weights={}, diminishrate=1, **kwargs):
         super().__init__(*args, **kwargs)

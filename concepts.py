@@ -7,6 +7,7 @@ Created on Tues Apr 28 2020
 """
 
 from collections import namedtuple as ntuple
+from numbers import Number
 
 from utilities.strings import uppercase
 
@@ -29,6 +30,13 @@ def concept(name, fields, function=_defaultfunction, fieldfunctions={}):
     fields = [field.lower() for field in [*fields, *fieldfunctions.values()]]
     functions = {field:fieldfunctions.get(field, function) for field in fields}
     
+    def __getitem__(self, key): return self.__getattr__(key)
+    def __hash__(self): return hash((self.__class__.__name__, *[(field, hash(getattr(self, field))) for field in self._fields],))
+    def __repr__(self): 
+        content = {field:getattr(self, field) for field in self._fields}
+        content = {key:(value if isinstance(value, (str, Number)) else repr(value)) for key, value in content.items()}
+        return '{}({})'.format(self.__class__.__name__, ', '.join(['='.join([key, value]) for key, value in content.items()]))
+    
     def __new__(cls, **kwargs): 
         kwargs = {kwargs.get(field, None) for field in cls._fields}
         kwargs = {cls._functions[field](value) if value is not None else value for field, value in kwargs.items()}
@@ -40,13 +48,11 @@ def concept(name, fields, function=_defaultfunction, fieldfunctions={}):
         newfieldfunctions = {fields:cls._functions.get(field, other._functions[field]) for field in set([*cls._fields, *other._fields])}
         return concept(cls.__name__, fieldfunctions=newfieldfunctions)
     
-    def __getitem__(self, key): return self.__getattr__(key)
-    def __hash__(self): return hash((self.__class__.__name__, *[hash(getattr(self, field)) for field in self._fields],))
     def todict(self): return self._asdict()    
 
     name = uppercase(name)
     base = ntuple(uppercase(name), ' '.join(fields))    
-    attrs = {'combine':combine, '_functions':functions, 'todict':todict, '__new__':__new__, '__getitem__':__getitem__, '__hash__':__hash__}
+    attrs = {'combine':combine, '_functions':functions, 'todict':todict, '__new__':__new__, '__getitem__':__getitem__, '__repr__':__repr__, '__hash__':__hash__}
     return type(name, (base,), attrs)
 
 
