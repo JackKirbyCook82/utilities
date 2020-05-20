@@ -29,18 +29,19 @@ def concept(name, fields, function=_defaultfunction, fieldfunctions={}):
     
     fields = [field.lower() for field in [*fields, *fieldfunctions.values()]]
     functions = {field:fieldfunctions.get(field, function) for field in fields}
-    
-    def __getitem__(self, key): return self.__getattr__(key)
-    def __hash__(self): return hash((self.__class__.__name__, *[(field, hash(getattr(self, field))) for field in self._fields],))
+       
+    def __getitem__(self, field): return getattr(self, field)
+    def __hash__(self): return hash((self.__class__.__name__, *[(field, hash(value)) for field, value in self.todict().items()],))
     def __repr__(self): 
-        content = {field:getattr(self, field) for field in self._fields}
+        content = {field:value for field, value in self.todict().items()}
         content = {key:(value if isinstance(value, (str, Number)) else repr(value)) for key, value in content.items()}
         return '{}({})'.format(self.__class__.__name__, ', '.join(['='.join([key, value]) for key, value in content.items()]))
     
-    def __new__(cls, **kwargs): 
-        kwargs = {kwargs.get(field, None) for field in cls._fields}
-        kwargs = {cls._functions[field](value) if value is not None else value for field, value in kwargs.items()}
-        return super().__new__(cls, **kwargs)      
+    def __new__(cls, items, *args, **kwargs): 
+        assert isinstance(items, dict)
+        items = {field:items.get(field, None) for field in cls._fields}
+        items = {field:(function(items[field], *args, **kwargs) if items[field] is not None else None) for field, function in cls._functions.items()}
+        return super(cls, cls).__new__(cls, **items)      
     
     @classmethod
     def combine(cls, other):
@@ -49,10 +50,11 @@ def concept(name, fields, function=_defaultfunction, fieldfunctions={}):
         return concept(cls.__name__, fieldfunctions=newfieldfunctions)
     
     def todict(self): return self._asdict()    
-
+    
     name = uppercase(name)
-    base = ntuple(uppercase(name), ' '.join(fields))    
-    attrs = {'combine':combine, '_functions':functions, 'todict':todict, '__new__':__new__, '__getitem__':__getitem__, '__repr__':__repr__, '__hash__':__hash__}
+    base = ntuple(uppercase(name), ' '.join(fields))       
+    attrs = {'__new__':__new__, '__getitem__':__getitem__, '__repr__':__repr__, '__hash__':__hash__,
+            'combine':combine, '_functions':functions, 'todict':todict}
     return type(name, (base,), attrs)
 
 
