@@ -40,4 +40,4 @@ class MonteCarlo(object):
             evals, evecs = eigh(self.__correlationmatrix)
             correlation_matrix = np.dot(evecs, np.diag(np.sqrt(evals)))
         else: raise ValueError(method)
-        return np.dot(correlation_matrix, samplematrix).transpose()  
+        return np.dot(correlation_matrix, samplematrix) 
