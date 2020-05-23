@@ -31,11 +31,9 @@ def concept(name, fields, function=_defaultfunction, fieldfunctions={}):
     functions = {field:fieldfunctions.get(field, function) for field in fields}
        
     def todict(self): return self._asdict()  
-    def __getattr__(self, field): return getattr(self, field)
-    def __getitem__(self, field): return self.todict()[field]
     def __hash__(self): return hash((self.__class__.__name__, *[(field, hash(value)) for field, value in self.todict().items()],))
     def __repr__(self): 
-        content = {key:(value if isinstance(value, (str, Number)) else repr(value)) for key, value in self.todict().items()}
+        content = {key:(str(value) if isinstance(value, (str, Number)) else repr(value)) for key, value in self.todict().items()}
         return '{}({})'.format(self.__class__.__name__, ', '.join(['='.join([key, value]) for key, value in content.items()]))
        
     @classmethod
@@ -46,17 +44,22 @@ def concept(name, fields, function=_defaultfunction, fieldfunctions={}):
     
     name = uppercase(name)
     base = ntuple(uppercase(name), ' '.join(fields))      
-    attrs = {'_functions':functions,'__getitem__':__getitem__, '__repr__':__repr__, '__hash__':__hash__, 'combine':combine,  'todict':todict}
+    attrs = {'_functions':functions, '__repr__':__repr__, '__hash__':__hash__, 'combine':combine,  'todict':todict}
     Concept = type(name, (base,), attrs)
 
-    def __init__(self, items, *args, **kwargs): pass
     def __new__(cls, items, *args, **kwargs): 
         assert isinstance(items, dict)
         items = {field:items[field] for field in cls._fields}
         items = {field:function(items[field], *args, **kwargs) for field, function in cls._functions.items()}
         return super(Concept, cls).__new__(cls, **items) 
 
-    setattr(Concept, '__init__', __init__)
+    def __getitem__(self, item): 
+        if isinstance(item, (int, slice)): return super(Concept, self).__getitem__(item)
+        elif isinstance(item, str): return getattr(self, item)
+        else: raise TypeError(type(item))
+
+
+    setattr(Concept, '__getitem__', __getitem__)
     setattr(Concept, '__new__', __new__)
     return Concept
     
