@@ -21,18 +21,15 @@ __license__ = ""
 class MonteCarlo(object):
     @property
     def keys(self): return list(self.__histograms.keys())
-    @property
-    def variables(self): 
-        variables = {}
-        for histogram in self.__histograms.values(): variables.update(histogram.variables)
-        return variables
        
     def __init__(self, **histograms):
         self.__histograms = ODict([(key, value) for key, value in histograms.items()])
+        self.__variables = {}
+        for histogram in self.__histograms.values(): self.__variables.update(histogram.variables)    
         self.__correlationmatrix = np.zeros((len(histograms), len(histograms)))
         np.fill_diagonal(self.__correlationmatrix, 1)
-     
-    def __samplematrix(self, size, *args, method='cholesky', **kwargs):
+        
+    def samplematrix(self, size, *args, method='cholesky', **kwargs):
         samplematrix = np.array([histogram(size) for histogram in self.__histograms.values()]) 
         if method == 'cholesky':
             correlation_matrix = cholesky(self.__correlationmatrix, lower=True)
@@ -42,14 +39,15 @@ class MonteCarlo(object):
         else: raise ValueError(method)
         return np.dot(correlation_matrix, samplematrix) 
     
-    def dataframe(self, size, *args, **kwargs):
-        samplematrix = self.__samplematrix(size, *args, **kwargs)    
+    def sampledataframe(self, size, *args, **kwargs):
+        samplematrix = self.samplematrix(size, *args, **kwargs)    
         sampletable = {key:list(values) for key, values in zip(self.keys, samplematrix)}
         return pd.DataFrame(sampletable)        
     
     def __call__(self, size, *args, **kwargs):
-        for index, values in self.dataframe(size).iterrows():  
-            yield index, values, self.variables    
+        for index, values in self.sampledataframe(size).iterrows():  
+            values = {key:self.__variables[key].fromindex(value) for key, value in values.to_dict().items()}
+            yield index, values  
     
     
     
