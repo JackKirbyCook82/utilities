@@ -31,11 +31,11 @@ def concept(name, fields, function=_defaultfunction, fieldfunctions={}):
     functions = {field:fieldfunctions.get(field, function) for field in fields}
        
     def todict(self): return self._asdict()  
-    def __hash__(self): return hash((self.__class__.__name__, *[(field, hash(value)) for field, value in self.todict().items()],))
+#    def __hash__(self): raise Exception('HASH TABLE REQUIRED')
     def __repr__(self): 
         content = {key:(str(value) if isinstance(value, (str, Number)) else repr(value)) for key, value in self.todict().items()}
         return '{}({})'.format(self.__class__.__name__, ', '.join(['='.join([key, value]) for key, value in content.items()]))
-       
+    
     @classmethod
     def combine(cls, other):
         assert hasattr(other, '_fields') and hasattr(other, '_functions')
