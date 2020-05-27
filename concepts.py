@@ -31,7 +31,6 @@ def concept(name, fields, function=_defaultfunction, fieldfunctions={}):
     functions = {field:fieldfunctions.get(field, function) for field in fields}
        
     def todict(self): return self._asdict()  
-#    def __hash__(self): raise Exception('HASH TABLE REQUIRED')
     def __repr__(self): 
         content = {key:(str(value) if isinstance(value, (str, Number)) else repr(value)) for key, value in self.todict().items()}
         return '{}({})'.format(self.__class__.__name__, ', '.join(['='.join([key, value]) for key, value in content.items()]))
@@ -44,7 +43,7 @@ def concept(name, fields, function=_defaultfunction, fieldfunctions={}):
     
     name = uppercase(name)
     base = ntuple(uppercase(name), ' '.join(fields))      
-    attrs = {'_functions':functions, '__repr__':__repr__, '__hash__':__hash__, 'combine':combine,  'todict':todict}
+    attrs = {'_functions':functions, '__repr__':__repr__, 'combine':combine,  'todict':todict}
     Concept = type(name, (base,), attrs)
 
     def __new__(cls, items, *args, **kwargs): 
@@ -57,7 +56,6 @@ def concept(name, fields, function=_defaultfunction, fieldfunctions={}):
         if isinstance(item, (int, slice)): return super(Concept, self).__getitem__(item)
         elif isinstance(item, str): return getattr(self, item)
         else: raise TypeError(type(item))
-
 
     setattr(Concept, '__getitem__', __getitem__)
     setattr(Concept, '__new__', __new__)

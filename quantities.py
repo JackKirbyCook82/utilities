@@ -53,7 +53,7 @@ class Quantity(object):
     def __prep(ofquantity, byquantity):
         generator = lambda items: _asstr(_filter(_aslist(items)))
         ofquantity, byquantity = [item for item in generator(ofquantity)], [item for item in generator(byquantity)]
-        return [item for item in ofquantity if item not in byquantity], [item for item in byquantity if item not in ofquantity]
+        return tuple([item for item in ofquantity if item not in byquantity]), tuple([item for item in byquantity if item not in ofquantity])
 
     @property
     def ofquantity(self): return self.__ofquantity
@@ -64,6 +64,7 @@ class Quantity(object):
         if not isinstance(other, type(self)): return False
         return all([self.ofquantity == other.ofquantity, self.byquantity == other.byquantity])
     def __ne__(self, other): return not self.__eq__(other)
+    def __hash__(self): return hash((self.__ofquantity, self.__byquantity,))
     def __bool__(self): return set(self.numerator) != set(self.denominator)
     
     @sametype

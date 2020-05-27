@@ -38,8 +38,7 @@ class UtilityIndex(ABC):
     def __repr__(self): 
         string = '{}(functiontype={}, amplitude={}, tolerances={}, weights={})' 
         return string.format(self.__class__.__name__, self.functiontype, self.amplitude, self.tolerancesDict(), self.weightsDict())
-    
-#    def __hash__(self): raise Exception('HASH TABLE REQUIRED')        
+        
     def __len__(self): return len(self.parameters)
     def __init__(self, *args, amplitude=1, tolerances={}, **kwargs): 
         assert isinstance(tolerances, dict)
@@ -80,7 +79,6 @@ class UtilityFunction(ABC):
         indexes = {parameter:repr(index) for parameter, index in zip(self.parameters, self.indexes)}
         return string.format(self.__class__.__name__, self.functiontype, indexes)
     
-#    def __hash__(self): raise Exception('HASH TABLE REQUIRED')    
     def __len__(self): return len(self.parameters)
     def __init__(self, *args, indexes, **kwargs):
         assert isinstance(indexes, dict)
@@ -117,11 +115,6 @@ class CobbDouglas_UtilityFunction(UtilityFunction):
         string = '{}(functiontype={}, amplitude={}, diminishrate={}, subsistences={}, weights={}, indexes={})'
         indexes = {parameter:repr(index) for parameter, index in zip(self.parameters, self.indexes)}
         return string.format(self.__class__.__name__, self.functiontype, self.amplitude, self.diminishrate, self.subsistencesDict(), self.weightsDict(), indexes)
-       
-#    def __hash__(self): 
-#        coefficients = tuple([(parameter, subsistence, weight,) for parameter, subsistence, weight in zip(self.parameters, self.subsistences, self.weights)])
-#        indexes = tuple([(parameter, hash(index),) for parameter, index in zip(self.parameters, self.indexes)])
-#        return hash((self.__class__.__name__, self.functiontype, self.amplitude, self.diminishrate, coefficients, indexes))
     
     def __init__(self, *args, amplitude=1, subsistences={}, weights={}, diminishrate=1, **kwargs):
         super().__init__(*args, **kwargs)
