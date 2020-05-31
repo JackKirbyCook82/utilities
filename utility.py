@@ -52,7 +52,11 @@ class UtilityIndex(ABC):
         x = np.array([parameters[parameter] for parameter in self.parameters])
         y = self.amplitude * self.function(self.tolerances, self.weights, x)
         return y
-       
+
+    __subclasses = {}     
+    @classmethod
+    def subclasses(cls): return cls.__subclasses
+          
     @classmethod
     def register(cls, functionname, functiontype, parameter_weights):
         if cls != UtilityIndex: raise NotImplementedError('{}.{}()'.format(cls.__name__, 'create'))
@@ -61,13 +65,14 @@ class UtilityIndex(ABC):
         parameters = list(parameter_weights.keys())
         weights = _normalize(list(parameter_weights.values()))
         attrs = dict(parameters=parameters, weights=weights, functionname=functionname, functiontype=functiontype, function=INDEXFUNCTIONS[functiontype])
-        def wrapper(subclass): return type(subclass.__name__, (subclass, cls), attrs)
+        def wrapper(subclass): 
+            newsubclass = type(subclass.__name__, (subclass, cls), attrs)
+            cls.__subclasses[functionname] = newsubclass
+            return newsubclass
         return wrapper
     
     @classmethod
-    def subclasses(cls): return {subclass.functionname:subclass for subclass in cls.__subclasses__()}     
-    @classmethod
-    def create(cls, functionname, *args, **kwargs): return cls.subclasses()[functionname](*args, **kwargs)
+    def create(cls, functionname, *args, **kwargs): return cls.subclasses()[functionname](*args, **kwargs)    
 
 
 class UtilityFunction(ABC):
@@ -89,16 +94,21 @@ class UtilityFunction(ABC):
         y = self.exeucte(x, *args, **kwargs)
         return y   
 
+    __subclasses = {}     
+    @classmethod
+    def subclasses(cls): return cls.__subclasses
+
     @classmethod
     def register(cls, functionname, functiontype):
         if cls != UtilityFunction: raise NotImplementedError('{}.{}()'.format(cls.__name__, 'create'))
         assert functiontype in UTILITYFUNCTIONS.keys()
-        attrs = dict(functiontype=functiontype, function=UTILITYFUNCTIONS[functiontype])
-        def wrapper(subclass): return type(subclass.__name__, (subclass, cls), attrs)
+        attrs = dict(functionname=functionname, functiontype=functiontype, function=UTILITYFUNCTIONS[functiontype])
+        def wrapper(subclass): 
+            newsubclass = type(subclass.__name__, (subclass, cls), attrs)
+            cls.__subclasses[functionname] = newsubclass
+            return newsubclass            
         return wrapper   
     
-    @classmethod
-    def subclasses(cls): return {subclass.functionname:subclass for subclass in cls.__subclasses__()}     
     @classmethod
     def create(cls, functionname, *args, **kwargs): return cls.subclasses()[functionname](*args, **kwargs)
 
@@ -125,10 +135,8 @@ class CobbDouglas_UtilityFunction(UtilityFunction):
         
     def execute(self, x, *args, **kwargs):
         return self.function(*self.coefficients, x)
-        
-        
 
-    
+        
 
 
     
