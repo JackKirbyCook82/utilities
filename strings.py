@@ -26,7 +26,7 @@ def uppercase(string, index=0, withops=False):
     
 strformating = lambda x: uppercase(x, withops=True)
 intformating = lambda x: '{:.0f}'.format(x)
-floatformating = lambda x: '{:.2f}'.format(x)
+floatformating = lambda x: '{:.4f}'.format(x)
 
 
 def dictstring(items):
