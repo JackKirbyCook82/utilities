@@ -32,13 +32,15 @@ class UtilityIndex(ABC):
     @abstractmethod
     def execute(self, *args, **kwargs): pass
 
-    def tolerancesDict(self): return {parameter:tolerance for parameter, tolerance in zip(self.parameters, self.tolerances)}
-    def weightsDict(self): return {parameter:weight for parameter, weight in zip(self.parameters, self.weights)}
+    @property
+    def key(self): return (self.functionname, self.functiontype, self.amplitude, *[item for item in self.items()],)
     def items(self): return [(parameter, weight, tolerance) for parameter, weight, tolerance in zip(self.parameters, self.weights, self.tolerances)]  
     
     def __repr__(self): 
-        string = '{}(functiontype={}, amplitude={}, tolerances={}, weights={})' 
-        return string.format(self.__class__.__name__, self.functiontype, self.amplitude, self.tolerancesDict(), self.weightsDict())
+        string = '{}(functionname={}, functiontype={}, amplitude={}, tolerances={}, weights={})' 
+        tolerancesDict = {parameter:tolerance for parameter, tolerance in zip(self.parameters, self.tolerances)}
+        weightsDict = {parameter:weight for parameter, weight in zip(self.parameters, self.weights)}
+        return string.format(self.__class__.__name__, self.functionname, self.functiontype, self.amplitude, tolerancesDict, weightsDict)
         
     def __len__(self): return len(self.parameters)
     def __init__(self, *args, amplitude=1, tolerances={}, **kwargs): 
@@ -79,6 +81,8 @@ class UtilityIndex(ABC):
 class UtilityFunction(ABC):
     @abstractmethod
     def execute(self): pass
+    @abstractmethod
+    def key(self): pass
     
     def __repr__(self): 
         string = '{}(functiontype={}, indexes={})'
@@ -117,26 +121,27 @@ class UtilityFunction(ABC):
 @UtilityFunction.register('cobbdouglas', 'cobbdouglas')
 class CobbDouglas_UtilityFunction(UtilityFunction):
     @property
-    def coefficients(self): return self.amplitude, self.subsistences, self.diminishrate, self.weights    
-
-    def subsistencesDict(self): return {parameter:subsistence for parameter, subsistence in zip(self.parameters, self.subsistences)}
-    def weightsDict(self): return {parameter:weight for parameter, weight in zip(self.parameters, self.weights)}
-    def items(self): return [(parameter, subsistence, weight) for parameter, subsistence, weight in zip(self.parameters, self.subsistences, self.weights, )]  
+    def key(self): return (self.functionname, self.functiontype, self.amplitude, self.diminishrate, *[(*item[:-1], item[-1].key) for item in self.items()],)
+    def items(self): return [(parameter, subsistence, weight, index) for parameter, subsistence, weight, index in zip(self.parameters, self.subsistences, self.weights, self.indexes,)]  
      
     def __repr__(self): 
-        string = '{}(functiontype={}, amplitude={}, diminishrate={}, subsistences={}, weights={}, indexes={})'
-        indexes = {parameter:repr(index) for parameter, index in zip(self.parameters, self.indexes)}
-        return string.format(self.__class__.__name__, self.functiontype, self.amplitude, self.diminishrate, self.subsistencesDict(), self.weightsDict(), indexes)
+        string = '{}(functionname={}, functiontype={}, amplitude={}, diminishrate={}, subsistences={}, weights={}, indexes={})'
+        subsistencesDict = {parameter:subsistence for parameter, subsistence in zip(self.parameters, self.subsistences)}
+        weightsDict = {parameter:weight for parameter, weight in zip(self.parameters, self.weights)}
+        indexesDict = {parameter:repr(index) for parameter, index in zip(self.parameters, self.indexes)}
+        return string.format(self.__class__.__name__, self.functionname, self.functiontype, self.amplitude, self.diminishrate, subsistencesDict, weightsDict, indexesDict)
     
-    def __init__(self, *args, amplitude=1, subsistences={}, weights={}, diminishrate=1, **kwargs):
+    def __init__(self, *args, amplitude=1, diminishrate=1, subsistences={}, weights={}, **kwargs):
         super().__init__(*args, **kwargs)
         assert all([isinstance(items, dict) for items in (subsistences, weights)])
         self.amplitude, self.diminishrate = amplitude, diminishrate
         self.subsistences = np.array([subsistences.get(parm, 0) for parm in self.parameters])
-        self.weights = _normalize(np.array([weights.get(parm, 0) for parm in self.parameters]))
+        self.weights = np.array([weights.get(parm, 0) for parm in self.parameters])
+        if np.all(self.weights == 0): self.weights = np.ones(self.weights.shape)
+        else: self.weights = _normalize(self.weights) 
         
     def execute(self, x, *args, **kwargs):
-        return self.function(*self.coefficients, x)
+        return self.function(self.amplitude, self.subsistences, self.diminishrate, self.weights, x)
 
         
 
