@@ -34,7 +34,8 @@ class UtilityIndex(ABC):
 
     def tolerancesDict(self): return {parameter:tolerance for parameter, tolerance in zip(self.parameters, self.tolerances)}
     def weightsDict(self): return {parameter:weight for parameter, weight in zip(self.parameters, self.weights)}
-        
+    def items(self): return [(parameter, weight, tolerance) for parameter, weight, tolerance in zip(self.parameters, self.weights, self.tolerances)]  
+    
     def __repr__(self): 
         string = '{}(functiontype={}, amplitude={}, tolerances={}, weights={})' 
         return string.format(self.__class__.__name__, self.functiontype, self.amplitude, self.tolerancesDict(), self.weightsDict())
@@ -120,7 +121,8 @@ class CobbDouglas_UtilityFunction(UtilityFunction):
 
     def subsistencesDict(self): return {parameter:subsistence for parameter, subsistence in zip(self.parameters, self.subsistences)}
     def weightsDict(self): return {parameter:weight for parameter, weight in zip(self.parameters, self.weights)}
- 
+    def items(self): return [(parameter, subsistence, weight) for parameter, subsistence, weight in zip(self.parameters, self.subsistences, self.weights, )]  
+     
     def __repr__(self): 
         string = '{}(functiontype={}, amplitude={}, diminishrate={}, subsistences={}, weights={}, indexes={})'
         indexes = {parameter:repr(index) for parameter, index in zip(self.parameters, self.indexes)}
