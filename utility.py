@@ -43,7 +43,7 @@ class UtilityIndex(ABC):
 
     @property
     def key(self): return hash((self.functionname, self.functiontype, self.amplitude, *[item for item in self.items()],))
-    def items(self): return [(parameter, self.tolerances[parameter], self.weight[parameter]) for parameter in self.parameters]  
+    def items(self): return [(parameter, self.tolerances[parameter], self.weight[parameter]) for parameter in sorted(self.parameters)]  
     
     def __repr__(self): 
         string = '{}(functionname={}, functiontype={}, amplitude={}, tolerances={}, weights={})' 
@@ -60,9 +60,9 @@ class UtilityIndex(ABC):
         values = self.execute(*args, **kwargs)
         assert isinstance(values, dict)
         assert all([parameter in values.keys() for parameter in self.parameters])
-        t = np.array([self.tolerances[parameter] for parameter in self.parameters])
-        w = _normalize(np.array([self.weights[parameter] for parameter in self.parameters]))
-        x = np.array([values[parameter] for parameter in self.parameters])
+        t = np.array([self.tolerances[parameter] for parameter in sorted(self.parameters)])
+        w = _normalize(np.array([self.weights[parameter] for parameter in sorted(self.parameters)]))
+        x = np.array([values[parameter] for parameter in sorted(self.parameters)])
         return self.function(self.amplitude, t, w, x)  
     
     __subclasses = {}          
@@ -74,7 +74,7 @@ class UtilityIndex(ABC):
     
     @classmethod
     def register(cls, functionname, functiontype, *args, parameters, **kargs):
-        if cls == UtilityIndex: raise NotImplementedError('{}.{}()'.format(cls.__name__, 'register'))      
+        if cls != UtilityIndex: raise NotImplementedError('{}.{}()'.format(cls.__name__, 'register'))      
         assert isinstance(parameters, (tuple, list))
         assert functiontype in INDEXFUNCTIONS.keys()
         attrs = dict(functionname=functionname, functiontype=functiontype, function=INDEXFUNCTIONS[functiontype], parameters=parameters)
@@ -95,7 +95,7 @@ class UtilityFunction(ABC):
 
     @property
     def key(self): return hash((self.functionname, self.functiontype, self.amplitude, *[(key, value) for key, value in self.coefficents.items()], *[item for item in self.items()],))
-    def items(self): return [(parameter, self.subsistences[parameter], self.weight[parameter]) for parameter in self.parameters]   
+    def items(self): return [(parameter, self.subsistences[parameter], self.weight[parameter]) for parameter in sorted(self.parameters)]   
     
     def __repr__(self): 
         content = dict(functionname=self.functionname, functiontype=self.functiontype, amplitude=self.amplitude, subsistences=self.subsistences, weights=self.weights)
@@ -107,15 +107,15 @@ class UtilityFunction(ABC):
         assert isinstance(subsistences, dict) and isinstance(weights, dict)
         self.__amplitude, self.__diminishrate = amplitude, diminishrate
         self.__coefficents = ODict([(coefficent, kwargs[coefficent]) for coefficent in self.coefficents])
-        self.__subsistences = {subsistences.get(parm, 1) for parm in self.parameters}
+        self.__subsistences = {subsistences.get(parm, 0) for parm in self.parameters}
         self.__weights = {weights.get(parm, 1) for parm in self.parameters}
         self.__indexes = {indexes[parm] for parm in self.parameters}
 
     def __call__(self, *args, **kwargs): 
         c = list(self.__coefficents.values())
-        s = np.array([self.__subsistences[parameter] for parameter in self.parameters])
-        w = _normalize(np.array([self.__weights[parameter] for parameter in self.parameters]))
-        x = np.array([self.__indexes[parameter](*args, **kwargs) for parameter in self.parameters])
+        s = np.array([self.__subsistences[parameter] for parameter in sorted(self.parameters)])
+        w = _normalize(np.array([self.__weights[parameter] for parameter in sorted(self.parameters)]))
+        x = np.array([self.__indexes[parameter](*args, **kwargs) for parameter in sorted(self.parameters)])
         return self.function(self.__amplitude, self.__diminishrate, s, w, x, *c)
 
     __subclasses = {}          
@@ -127,9 +127,9 @@ class UtilityFunction(ABC):
     
     @classmethod
     def register(cls, functionname, functiontype, *args, parameters, coefficents, **kwargs):
-        if cls == UtilityFunction: raise NotImplementedError('{}.{}()'.format(cls.__name__, 'register'))      
+        if cls != UtilityFunction: raise NotImplementedError('{}.{}()'.format(cls.__name__, 'register'))      
         assert isinstance(parameters, (tuple, list)) and isinstance(coefficents, (tuple, list))
-        assert functiontype in INDEXFUNCTIONS.keys()       
+        assert functiontype in UTILITYFUNCTIONS.keys()       
         attrs = dict(functionname=functionname, functiontype=functiontype, function=UTILITYFUNCTIONS[functiontype], parameters=parameters, coefficents=coefficents)
         def wrapper(subclass): 
             newsubclass = type(subclass.__name__, (subclass, cls), attrs)
