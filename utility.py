@@ -25,10 +25,11 @@ UTILITYFUNCTIONS = {
     'cobbdouglas': lambda a, d, s, w, x: (np.prod(np.power(np.subtract(x, s), w)) ** d) * a,
     'ces': lambda a, d, s, w, x, p: (np.sum(np.multiply((np.subtract(x, s) ** p), w)) ** (d/p)) * a}
 INDEXFUNCTIONS = {
-    'inverted': lambda a, t, w, x: np.sum(np.divide(np.divide(w, t), x)),
-    'tangent': lambda a, t, w, x: np.sum(np.multiply(np.divide(w, t), np.tan(x * np.pi/2))),
-    'rtangent': lambda a, t, w, x: np.sum(np.multiply(np.divide(w, t), np.tan((1 - x) * np.pi/2))),
-    'logarithm': lambda a, t, w, x: np.sum(np.multiply(np.divide(w, t), np.log(x + 1)))}
+    'additive': lambda a, t, w, x: np.sum(np.multiply(np.divide(w, t), x)) * a,
+    'inverted': lambda a, t, w, x: np.sum(np.divide(np.divide(w, t), x)) * a,
+    'tangent': lambda a, t, w, x: np.sum(np.multiply(np.divide(w, t), np.tan(x * np.pi/2))) * a,
+    'rtangent': lambda a, t, w, x: np.sum(np.multiply(np.divide(w, t), np.tan((1 - x) * np.pi/2))) * a,
+    'logarithm': lambda a, t, w, x: np.sum(np.multiply(np.divide(w, t), np.log(x + 1))) * a}
 
 
 class UtilityIndex(ABC): 
@@ -53,8 +54,8 @@ class UtilityIndex(ABC):
     def __init__(self, *args, amplitude=1, tolerances={}, weights={}, **kwargs): 
         assert isinstance(tolerances, dict) and isinstance(weights, dict)
         self.amplitude = amplitude
-        self.tolerances = {tolerances.get(parm, 1) for parm in self.parameters}
-        self.weights = {weights.get(parm, 1) for parm in self.parameters}
+        self.tolerances = {parm:tolerances.get(parm, 1) for parm in self.parameters}
+        self.weights = {parm:weights.get(parm, 1) for parm in self.parameters}
  
     def __call__(self, *args, **kwargs): 
         values = self.execute(*args, **kwargs)
@@ -69,8 +70,7 @@ class UtilityIndex(ABC):
     @classmethod
     def subclasses(cls): return cls.__subclasses
     @classmethod
-    def getsubclass(cls, functionname): return cls.__subclasses[functionname.lower()]   
-    def __class_getitem__(cls, functionname): return cls.getsubclass(functionname)
+    def getfunction(cls, functionname): return cls.__subclasses[functionname.lower()]   
     
     @classmethod
     def register(cls, functionname, functiontype, *args, parameters, **kargs):
@@ -94,22 +94,23 @@ class UtilityFunction(ABC):
     def function(self, *args, **kwargs): pass
 
     @property
-    def key(self): return hash((self.functionname, self.functiontype, self.amplitude, *[(key, value) for key, value in self.coefficents.items()], *[item for item in self.items()],))
-    def items(self): return [(parameter, self.subsistences[parameter], self.weight[parameter]) for parameter in sorted(self.parameters)]   
+    def key(self): return hash((self.functionname, self.functiontype, self.__amplitude, *[(key, value) for key, value in self.__coefficents.items()], *[item for item in self.items()],))
+    def items(self): return [(parameter, self.__subsistences[parameter], self.__weights[parameter]) for parameter in sorted(self.__parameters)]   
     
     def __repr__(self): 
-        content = dict(functionname=self.functionname, functiontype=self.functiontype, amplitude=self.amplitude, subsistences=self.subsistences, weights=self.weights)
-        content.update(self.coefficents)
+        content = dict(functionname=self.functionname, functiontype=self.functiontype, amplitude=self.__amplitude, subsistences=self.__subsistences, weights=self.__weights)
+        content.update(self.__coefficents)
         return '{}({})'.format(self.__class__.__name__, ', '.join(['='.join([key, value]) for key, value in content.items()])) 
         
     def __len__(self): return len(self.parameters)
     def __init__(self, *args, amplitude=1, diminishrate=1, subsistences={}, weights={}, indexes={}, **kwargs): 
         assert isinstance(subsistences, dict) and isinstance(weights, dict)
+        self.__parameters = tuple(indexes.keys())
         self.__amplitude, self.__diminishrate = amplitude, diminishrate
         self.__coefficents = ODict([(coefficent, kwargs[coefficent]) for coefficent in self.coefficents])
-        self.__subsistences = {subsistences.get(parm, 0) for parm in self.parameters}
-        self.__weights = {weights.get(parm, 1) for parm in self.parameters}
-        self.__indexes = {indexes[parm] for parm in self.parameters}
+        self.__subsistences = {parm:subsistences.get(parm, 0) for parm in self.__parameters}
+        self.__weights = {parm:weights.get(parm, 1) for parm in self.__parameters}
+        self.__indexes = indexes
 
     def __call__(self, *args, **kwargs): 
         c = list(self.__coefficents.values())
@@ -122,15 +123,14 @@ class UtilityFunction(ABC):
     @classmethod
     def subclasses(cls): return cls.__subclasses
     @classmethod
-    def getsubclass(cls, functionname): return cls.__subclasses[functionname.lower()]   
-    def __class_getitem__(cls, functionname): return cls.getsubclass(functionname)
+    def getfunction(cls, functionname): return cls.__subclasses[functionname.lower()]   
     
     @classmethod
-    def register(cls, functionname, functiontype, *args, parameters, coefficents, **kwargs):
+    def register(cls, functionname, functiontype, *args, coefficents, **kwargs):
         if cls != UtilityFunction: raise NotImplementedError('{}.{}()'.format(cls.__name__, 'register'))      
-        assert isinstance(parameters, (tuple, list)) and isinstance(coefficents, (tuple, list))
+        assert isinstance(coefficents, (tuple, list))
         assert functiontype in UTILITYFUNCTIONS.keys()       
-        attrs = dict(functionname=functionname, functiontype=functiontype, function=UTILITYFUNCTIONS[functiontype], parameters=parameters, coefficents=coefficents)
+        attrs = dict(functionname=functionname, functiontype=functiontype, function=UTILITYFUNCTIONS[functiontype], coefficents=coefficents)
         def wrapper(subclass): 
             newsubclass = type(subclass.__name__, (subclass, cls), attrs)
             cls.__subclasses[functionname] = newsubclass
