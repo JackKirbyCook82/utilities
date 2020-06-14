@@ -100,7 +100,7 @@ class UtilityFunction(ABC):
     def __repr__(self): 
         content = dict(functionname=self.functionname, functiontype=self.functiontype, amplitude=self.__amplitude, subsistences=self.__subsistences, weights=self.__weights)
         content.update(self.__coefficents)
-        return '{}({})'.format(self.__class__.__name__, ', '.join(['='.join([key, value]) for key, value in content.items()])) 
+        return '{}({})'.format(self.__class__.__name__, ', '.join(['='.join([key, str(value)]) for key, value in content.items()])) 
         
     def __len__(self): return len(self.parameters)
     def __init__(self, *args, amplitude=1, diminishrate=1, subsistences={}, weights={}, indexes={}, **kwargs): 
