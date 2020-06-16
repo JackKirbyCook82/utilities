@@ -22,8 +22,8 @@ _normalize = lambda items: np.array(items) / np.sum(np.array(items))
 
 
 UTILITYFUNCTIONS = {
-    'cobbdouglas': lambda a, d, s, w, x: (np.prod(np.power(np.subtract(x, s), w)) ** d) * a,
-    'ces': lambda a, d, s, w, x, p: (np.sum(np.multiply((np.subtract(x, s) ** p), w)) ** (d/p)) * a}
+    'cobbdouglas': lambda a, d, s, w, x, *c: (np.prod(np.power(np.subtract(x, s), w)) ** d) * a,
+    'ces': lambda a, d, s, w, x, p, *c: (np.sum(np.multiply((np.subtract(x, s) ** p), w)) ** (d/p)) * a}
 INDEXFUNCTIONS = {
     'additive': lambda a, t, w, x: np.sum(np.multiply(np.divide(w, t), x)) * a,
     'inverted': lambda a, t, w, x: np.sum(np.divide(np.divide(w, t), x)) * a,
@@ -38,9 +38,6 @@ class UtilityIndex(ABC):
     @classmethod    
     @abstractmethod
     def create(self, *args, **kwargs): pass
-    @classmethod    
-    @abstractmethod
-    def function(self, *args, **kwargs): pass
 
     @property
     def key(self): return hash((self.functionname, self.functiontype, self.amplitude, *[item for item in self.items()],))
@@ -55,16 +52,17 @@ class UtilityIndex(ABC):
         assert isinstance(tolerances, dict) and isinstance(weights, dict)
         self.amplitude = amplitude
         self.tolerances = {parm:tolerances.get(parm, 1) for parm in self.parameters}
-        self.weights = {parm:weights.get(parm, 1) for parm in self.parameters}
+        self.weights = {parm:weights.get(parm, 0) for parm in self.parameters}
  
     def __call__(self, *args, **kwargs): 
         values = self.execute(*args, **kwargs)
         assert isinstance(values, dict)
         assert all([parameter in values.keys() for parameter in self.parameters])
         t = np.array([self.tolerances[parameter] for parameter in sorted(self.parameters)])
-        w = _normalize(np.array([self.weights[parameter] for parameter in sorted(self.parameters)]))
+        w = np.array([self.weights[parameter] for parameter in sorted(self.parameters)])
+        w = _normalize(w) if sum(w) > 0 else np.ones(w.shape) * (1/len(w))
         x = np.array([values[parameter] for parameter in sorted(self.parameters)])
-        return self.function(self.amplitude, t, w, x)  
+        return INDEXFUNCTIONS[self.functiontype](self.amplitude, t, w, x)  
     
     __subclasses = {}          
     @classmethod
@@ -77,7 +75,7 @@ class UtilityIndex(ABC):
         if cls != UtilityIndex: raise NotImplementedError('{}.{}()'.format(cls.__name__, 'register'))      
         assert isinstance(parameters, (tuple, list))
         assert functiontype in INDEXFUNCTIONS.keys()
-        attrs = dict(functionname=functionname, functiontype=functiontype, function=INDEXFUNCTIONS[functiontype], parameters=parameters)
+        attrs = dict(functionname=functionname, functiontype=functiontype, parameters=parameters)
         def wrapper(subclass): 
             newsubclass = type(subclass.__name__, (subclass, cls), attrs)
             cls.__subclasses[functionname] = newsubclass
@@ -89,9 +87,6 @@ class UtilityFunction(ABC):
     @classmethod    
     @abstractmethod
     def create(self, *args, **kwargs): pass
-    @classmethod    
-    @abstractmethod
-    def function(self, *args, **kwargs): pass
 
     @property
     def key(self): return hash((self.functionname, self.functiontype, self.__amplitude, *[(key, value) for key, value in self.__coefficents.items()], *[item for item in self.items()],))
@@ -109,15 +104,16 @@ class UtilityFunction(ABC):
         self.__amplitude, self.__diminishrate = amplitude, diminishrate
         self.__coefficents = ODict([(coefficent, kwargs[coefficent]) for coefficent in self.coefficents])
         self.__subsistences = {parm:subsistences.get(parm, 0) for parm in self.__parameters}
-        self.__weights = {parm:weights.get(parm, 1) for parm in self.__parameters}
+        self.__weights = {parm:weights.get(parm, 0) for parm in self.__parameters}
         self.__indexes = indexes
 
     def __call__(self, *args, **kwargs): 
         c = list(self.__coefficents.values())
-        s = np.array([self.__subsistences[parameter] for parameter in sorted(self.parameters)])
-        w = _normalize(np.array([self.__weights[parameter] for parameter in sorted(self.parameters)]))
-        x = np.array([self.__indexes[parameter](*args, **kwargs) for parameter in sorted(self.parameters)])
-        return self.function(self.__amplitude, self.__diminishrate, s, w, x, *c)
+        s = np.array([self.__subsistences[parameter] for parameter in sorted(self.__parameters)])
+        w = np.array([self.__weights[parameter] for parameter in sorted(self.__parameters)])
+        w = _normalize(w) if sum(w) > 0 else np.ones(w.shape) * (1/len(w))
+        x = np.array([self.__indexes[parameter](*args, **kwargs) for parameter in sorted(self.__parameters)])
+        return UTILITYFUNCTIONS[self.functiontype](self.__amplitude, self.__diminishrate, s, w, x, *c)
 
     __subclasses = {}          
     @classmethod
@@ -130,7 +126,7 @@ class UtilityFunction(ABC):
         if cls != UtilityFunction: raise NotImplementedError('{}.{}()'.format(cls.__name__, 'register'))      
         assert isinstance(coefficents, (tuple, list))
         assert functiontype in UTILITYFUNCTIONS.keys()       
-        attrs = dict(functionname=functionname, functiontype=functiontype, function=UTILITYFUNCTIONS[functiontype], coefficents=coefficents)
+        attrs = dict(functionname=functionname, functiontype=functiontype, coefficents=coefficents)
         def wrapper(subclass): 
             newsubclass = type(subclass.__name__, (subclass, cls), attrs)
             cls.__subclasses[functionname] = newsubclass
