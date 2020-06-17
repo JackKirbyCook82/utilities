@@ -122,7 +122,7 @@ class UtilityFunction(ABC):
     def getfunction(cls, functionname): return cls.__subclasses[functionname.lower()]   
     
     @classmethod
-    def register(cls, functionname, functiontype, *args, coefficents, **kwargs):
+    def register(cls, functionname, functiontype, *args, coefficents=[], **kwargs):
         if cls != UtilityFunction: raise NotImplementedError('{}.{}()'.format(cls.__name__, 'register'))      
         assert isinstance(coefficents, (tuple, list))
         assert functiontype in UTILITYFUNCTIONS.keys()       
