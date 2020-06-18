@@ -32,6 +32,9 @@ INDEXFUNCTIONS = {
     'logarithm': lambda a, t, w, x: np.sum(np.multiply(np.divide(w, t), np.log(x + 1))) * a}
 
 
+class BelowSubsistenceError(Exception): pass
+
+
 class UtilityIndex(ABC): 
     @abstractmethod
     def execute(self, *args, **kwargs): pass
@@ -112,6 +115,7 @@ class UtilityFunction(ABC):
         w = np.array([self.__weights[parm] for parm in self.parameters])
         w = _normalize(w) if sum(w) > 0 else np.ones(w.shape) * (1/len(w))
         x = np.array([self.__indexes[parm](*args, **kwargs) for parm in self.parameters])
+        if np.any(x - s < 0): raise BelowSubsistenceError()
         utility = UTILITYFUNCTIONS[self.functiontype](self.__amplitude, self.__diminishrate, s, w, x, *c)
         if not np.isnan(utility): assert utility > 0
         return utility
