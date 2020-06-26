@@ -43,8 +43,9 @@ class UtilityIndex(ABC):
     def create(self, *args, **kwargs): pass
 
     @property
-    def key(self): return hash((self.functionname, self.functiontype, self.amplitude, *[item for item in self.items()],))
-    def items(self): return [(parameter, self.tolerances[parameter], self.weight[parameter]) for parameter in sorted(self.parameters)]  
+    def key(self): 
+        items = [(parameter, self.tolerances[parameter], self.weight[parameter]) for parameter in self.parameters] 
+        return hash((self.functionname, self.functiontype, self.amplitude, tuple(items),))
     
     def __repr__(self): 
         string = '{}(functionname={}, functiontype={}, amplitude={}, tolerances={}, weights={})' 
@@ -53,6 +54,7 @@ class UtilityIndex(ABC):
     def __len__(self): return len(self.parameters)
     def __init__(self, *args, amplitude=1, tolerances={}, weights={}, **kwargs): 
         assert isinstance(tolerances, dict) and isinstance(weights, dict)
+        assert all([hasattr(self, attr) for attr in ('functionname', 'functiontype', 'function', 'parameters')])
         self.amplitude = amplitude
         self.tolerances = {parm:tolerances.get(parm, 1) for parm in self.parameters}
         self.weights = {parm:weights.get(parm, 0) for parm in self.parameters}
@@ -60,25 +62,19 @@ class UtilityIndex(ABC):
     def __call__(self, *args, **kwargs): 
         values = self.execute(*args, **kwargs)
         assert isinstance(values, dict)
-        assert all([parameter in values.keys() for parameter in self.parameters])
-        t = np.array([self.tolerances[parameter] for parameter in sorted(self.parameters)])
-        w = np.array([self.weights[parameter] for parameter in sorted(self.parameters)])
+        assert all([parm in values.keys() for parm in self.parameters])
+        t = np.array([self.tolerances[parm] for parm in self.parameters])
+        w = np.array([self.weights[parm] for parm in self.parameters])
         w = _normalize(w) if sum(w) > 0 else np.ones(w.shape) * (1/len(w))
-        x = np.array([values[parameter] for parameter in sorted(self.parameters)])
-        return INDEXFUNCTIONS[self.functiontype](self.amplitude, t, w, x)  
-    
-    __subclasses = {}          
-    @classmethod
-    def subclasses(cls): return cls.__subclasses
-    @classmethod
-    def getfunction(cls, functionname): return cls.__subclasses[functionname.lower()]   
-    
+        x = np.array([values[parm] for parm in self.parameters])
+        return self.function(self.amplitude, t, w, x)  
+
     @classmethod
     def register(cls, functionname, functiontype, *args, parameters, **kargs):
         if cls != UtilityIndex: raise NotImplementedError('{}.{}()'.format(cls.__name__, 'register'))      
         assert isinstance(parameters, (tuple, list))
         assert functiontype in INDEXFUNCTIONS.keys()
-        attrs = dict(functionname=functionname, functiontype=functiontype, parameters=parameters)
+        attrs = dict(functionname=functionname, functiontype=functiontype, function=INDEXFUNCTIONS[functiontype], parameters=tuple(sorted(parameters)))
         def wrapper(subclass): 
             newsubclass = type(subclass.__name__, (subclass, cls), attrs)
             cls.__subclasses[functionname] = newsubclass
@@ -92,46 +88,45 @@ class UtilityFunction(ABC):
     def create(self, *args, **kwargs): pass
 
     @property
-    def key(self): return hash((self.functionname, self.functiontype, self.__amplitude, *[(key, value) for key, value in self.__coefficents.items()], *[item for item in self.items()],))
-    def items(self): return [(parm, self.__subsistences[parm], self.__weights[parm]) for parm in self.parameters]   
+    def key(self): 
+        coefficents = [(key, value) for key, value in self.__coefficents.items()]
+        items = [(parm, self.__subsistences[parm], self.__weights[parm]) for parm in self.parameters]   
+        functions = [(parm, self.__functions[parm].key if parm in self.__functions.keys() else None) for parm in self.parameters]
+        return hash((self.functionname, self.functiontype, self.__amplitude, tuple(coefficents), tuple(items), tuple(functions)))
     
     def __repr__(self): 
-        content = dict(functionname=self.functionname, functiontype=self.functiontype, amplitude=self.__amplitude, subsistences=self.__subsistences, weights=self.__weights)
-        content.update(self.__coefficents)
-        return '{}({})'.format(self.__class__.__name__, ', '.join(['='.join([key, str(value)]) for key, value in content.items()])) 
+        string = '{}(functionname={}, functiontype={}, amplitude={}, coefficents={}, subsistences={}, weights={})' 
+        return string.format(self.__class__.__name__, self.functionname, self.functiontype, self.__amplitude, self.__coefficents, self.__subsistences, self.__weights)
         
     def __len__(self): return len(self.parameters)
-    def __init__(self, *args, amplitude=1, diminishrate=1, subsistences={}, weights={}, indexes={}, **kwargs): 
+    def __init__(self, *args, amplitude=1, diminishrate=1, subsistences={}, weights={}, functions={}, **kwargs): 
         assert isinstance(subsistences, dict) and isinstance(weights, dict)
+        assert all([hasattr(self, attr) for attr in ('functionname', 'functiontype', 'function', 'parameters', 'coefficents')])
         self.__amplitude, self.__diminishrate = amplitude, diminishrate
         self.__coefficents = ODict([(coefficent, kwargs[coefficent]) for coefficent in self.coefficents])
         self.__subsistences = {parm:subsistences.get(parm, 0) for parm in self.parameters}
         self.__weights = {parm:weights.get(parm, 0) for parm in self.parameters}
-        self.__indexes = {parm:indexes[parm] for parm in self.parameters}
+        self.__functions = {parm:functions[parm] for parm in self.parameters if parm in functions}
 
+    def execute(self, *args, **kwargs): return {}
     def __call__(self, *args, **kwargs): 
+        values = self.execute(*args, **kwargs)
         c = list(self.__coefficents.values())
         s = np.array([self.__subsistences[parm] for parm in self.parameters])
         w = np.array([self.__weights[parm] for parm in self.parameters])
         w = _normalize(w) if sum(w) > 0 else np.ones(w.shape) * (1/len(w))
-        x = np.array([self.__indexes[parm](*args, **kwargs) for parm in self.parameters])
+        x = np.array([self.__functions[parm](*args, **kwargs) if parm in self.__functions.keys() else values[parm] for parm in self.parameters])
         if np.any(x - s < 0): raise BelowSubsistenceError()
-        utility = UTILITYFUNCTIONS[self.functiontype](self.__amplitude, self.__diminishrate, s, w, x, *c)
+        utility = self.function(self.__amplitude, self.__diminishrate, s, w, x, *c)
         if not np.isnan(utility): assert utility > 0
         return utility
 
-    __subclasses = {}          
-    @classmethod
-    def subclasses(cls): return cls.__subclasses
-    @classmethod
-    def getfunction(cls, functionname): return cls.__subclasses[functionname.lower()]   
-    
     @classmethod
     def register(cls, functionname, functiontype, *args, parameters, coefficents=[], **kwargs):
         if cls != UtilityFunction: raise NotImplementedError('{}.{}()'.format(cls.__name__, 'register'))      
         assert isinstance(coefficents, (tuple, list)) and isinstance(parameters, (tuple, list))
         assert functiontype in UTILITYFUNCTIONS.keys()       
-        attrs = dict(functionname=functionname, functiontype=functiontype, coefficents=coefficents, parameters=sorted(parameters))
+        attrs = dict(functionname=functionname, functiontype=functiontype, function=UTILITYFUNCTIONS[functiontype], parameters=tuple(sorted(parameters)), coefficents=tuple(coefficents))
         def wrapper(subclass): 
             newsubclass = type(subclass.__name__, (subclass, cls), attrs)
             cls.__subclasses[functionname] = newsubclass
