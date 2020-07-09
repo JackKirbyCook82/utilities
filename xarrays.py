@@ -75,11 +75,11 @@ def dataarray_function(function):
     return wrapper
 
 @keyword_dispatcher('fill')
-def fillcurve(*args, **kwargs): return {'bounds_error':True}
-@fillcurve.register('extrapolate')
-def extrapolate_fillcurve(*args, **kwargs): return {'fill_value':'extrapolate', 'bounds_error':False}
-@fillcurve.register('bound')
-def bounds_fillcurve(*args, bounds, **kwargs): return {'fill_value':bounds, 'bounds_error':False}
+def _fillcurve(*args, **kwargs): return {'bounds_error':True}
+@_fillcurve.register('extrapolate')
+def _extrapolate(*args, **kwargs): return {'fill_value':'extrapolate', 'bounds_error':False}
+@_fillcurve.register('bound')
+def _bounds(*args, bounds, **kwargs): return {'fill_value':bounds, 'bounds_error':False}
 
 
 # REDUCTIONS
@@ -95,18 +95,9 @@ def minimum(dataarray, *args, axis, **kwargs): return xr.apply_ufunc(np.amin, da
 @dataarray_function
 def maximum(dataarray, *args, axis, **kwargs): return xr.apply_ufunc(np.amax, dataarray, input_core_dims=[[axis]], keep_attrs=True, kwargs={'axis':-1})    
 
-
 @dataarray_function
 def wtaverage(dataarray, *args, axis, weights, **kwargs): 
     function = lambda x: nar.wtaverage(x, index=-1, weights=weights)
-    return xr.apply_ufunc(function, dataarray, input_core_dims=[[axis]], keep_attrs=True)  
-@dataarray_function
-def wtstdev(dataarray, *args, axis, weights, **kwargs): 
-    function = lambda x: nar.wtstdev(x, index=-1, weights=weights)
-    return xr.apply_ufunc(function, dataarray, input_core_dims=[[axis]], keep_attrs=True)  
-@dataarray_function
-def wtmedian(dataarray, *args, axis, weights, **kwargs): 
-    function = lambda x: nar.wtmedian(x, index=-1, weights=weights)
     return xr.apply_ufunc(function, dataarray, input_core_dims=[[axis]], keep_attrs=True)  
 
 
@@ -153,7 +144,7 @@ def absolute(dataarary, *args, **kwargs):
 
 @dataarray_function
 def interpolate(dataarray, *args, values, axis, how, **kwargs):
-    return dataarray.interp(**{axis:values}, method=how, kwargs=fillcurve(*args, **kwargs)) 
+    return dataarray.interp(**{axis:values}, method=how, kwargs=_fillcurve(*args, **kwargs)) 
 
 
 # ROLLING
