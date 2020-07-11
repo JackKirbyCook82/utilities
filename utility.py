@@ -99,8 +99,8 @@ class UtilityFunction(ABC):
         self.__amplitude, self.__diminishrate = amplitude, diminishrate
         self.__subsistences = {parm:subsistences.get(parm, 0) for parm in self.parameters}
         self.__weights = {parm:weights.get(parm, 0) for parm in self.parameters}
-        self.__functions = {parm:functions[parm] for parm in self.parameters if parm in functions}
-
+        self.__functions = {parm:functions[parm] for parm in self.parameters if parm in functions}                 
+        
     def __call__(self, *args, **kwargs):
         values = self.execute(*args, **kwargs)
         s = np.array([self.__subsistences[parm] for parm in self.parameters])
@@ -111,6 +111,7 @@ class UtilityFunction(ABC):
         return u
 
     def derivative(self, filtration, *args, **kwargs):
+        filtration = _aslist(filtration)
         values = self.execute(*args, **kwargs)
         s = np.array([self.__subsistences[parm] for parm in self.parameters])
         w = np.array([self.__weights[parm] for parm in self.parameters])
