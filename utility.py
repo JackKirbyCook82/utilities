@@ -107,7 +107,7 @@ class UtilityFunction(ABC):
         w = np.array([self.__weights[parm] for parm in self.parameters])
         w = _normalize(w) if sum(w) > 0 else np.ones(w.shape) * (1/len(w))
         x = np.array([self.__functions[parm](*args, **kwargs) if parm in self.__functions.keys() else values[parm] for parm in self.parameters])
-        u = UTILITY_FUNCTIONS[self.functiontype](self.__amplitude, self.__diminishrate, s, w, x) if not np.any(x - s < 0) else np.NaN        
+        u = UTILITY_FUNCTIONS[self.functiontype](self.__amplitude, self.__diminishrate, s, w, x) if np.all(np.subtract(x, s) > 0) else np.NaN        
         return u
 
     def derivative(self, filtration, *args, **kwargs):
@@ -117,10 +117,10 @@ class UtilityFunction(ABC):
         w = np.array([self.__weights[parm] for parm in self.parameters])
         w = _normalize(w) if sum(w) > 0 else np.ones(w.shape) * (1/len(w))
         x = np.array([self.__functions[parm](*args, **kwargs) if parm in self.__functions.keys() else values[parm] for parm in self.parameters])
-        u = UTILITY_FUNCTIONS[self.functiontype](self.__amplitude, self.__diminishrate, s, w, x)
-        s, w, x = [i[self.parameters.index(_aslist(filtration[0]))] for i in (s, w, x)]
+        u = UTILITY_FUNCTIONS[self.functiontype](self.__amplitude, self.__diminishrate, s, w, x) 
+        s, w, x = [i[self.parameters.index(filtration[0])] for i in (s, w, x)]
         dx = self.__functions[filtration[0]].derivative(filtration[1:], *args, **kwargs) if len(filtration) > 1 else 1
-        du = UTILITY_DERIVATIVES[self.functiontype](self.__amplitude, self.__diminishrate, s, w, x, u, dx) if not np.any(x - s > 0) else np.NaN
+        du = UTILITY_DERIVATIVES[self.functiontype](self.__amplitude, self.__diminishrate, s, w, x, u, dx)
         return du
         
     @classmethod
