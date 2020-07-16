@@ -7,6 +7,7 @@ Created on Sun Feb 23 2020
 """
 
 import numpy as np
+import warnings
 from abc import ABC, abstractmethod
 
 __version__ = "1.0.0"
@@ -23,17 +24,22 @@ _normalize = lambda items: np.array(items) / np.sum(np.array(items))
 UTILITY_FUNCTIONS = {
     'cobbdouglas': lambda x, w, a, d, *args: (np.prod(np.power(x, w)) ** d) * a,
     'ces': lambda x, w, a, d, p, *args: (np.sum(np.multiply(np.power(x, p), w)) **d) * a,
-    'linear': lambda x, w, a, *args: np.sum(np.multiply(x, w)) ** a}
+    'linear': lambda x, w, a, *args: np.sum(np.multiply(x, w)) ** a,
+    'expcobbdouglas': lambda x, w, a, d, *args: (np.prod(np.power(np.exp(x), w)) ** d) * a}
 UTILITY_DERIVATIVES = {
     'cobbdouglas': lambda i, x, w, a, d, *args: a * w[i] * d * (1/x[i]) * (np.prod(np.power(x, w)) ** d),
     'ces': lambda i, x, w, a, d, p, *args: a * w[i] * d * (x[i]**(p-1)) * (np.sum(np.multiply(x, w) ** p) ** ((d/p)-1)),
-    'linear': lambda i, x, w, a, d, *args: a * w[i]}
+    'linear': lambda i, x, w, a, d, *args: a * w[i],
+    'expcobbdouglas': lambda i, x, w, a, d, *args: a * w[i] * d * (np.prod(np.power(np.exp(x), w)) ** d)}
 INDEX_FUNCTIONS = {
     'additive': lambda x, w, t, a: np.sum(np.multiply(np.divide(w, t), x)) * a,
     'inverted': lambda x, w, t, a: np.sum(np.divide(np.divide(w, t), x)) * a,
     'tangent': lambda x, w, t, a: np.sum(np.multiply(np.divide(w, t), np.tan(x * np.pi/2))) * a,
     'rtangent': lambda x, w, t, a: np.sum(np.multiply(np.divide(w, t), np.tan((1 - x) * np.pi/2))) * a,
     'logarithm': lambda x, w, t, a: np.sum(np.multiply(np.divide(w, t), np.log(x + 1))) * a}
+
+
+class NumericalError(Exception): pass
 
 
 class UtilityIndex(ABC): 
@@ -88,20 +94,20 @@ class UtilityFunction(ABC):
 
     @property
     def key(self): 
-        types = (self.name, self.positivetype, self.negativetype)
+        types = (self.name, self.functiontype)
         coefficents = [(key, value) for key, value in self.__coefficents.items()]
         items = [(parm, self.__subsistences[parm], self.__weights[parm]) for parm in self.parameters]   
         functions = [(parm, self.__functions[parm].key if parm in self.__functions.keys() else None) for parm in self.parameters]
         return hash((tuple(types), tuple(coefficents), tuple(items), tuple(functions)))
     
     def __repr__(self): 
-        string = '{}(name={}, positivetype={}, negativetype={}, coefficents={}, subsistences={}, weights={})' 
-        return string.format(self.__class__.__name__, self.name, self.positivetype, self.negativetype, self.__coefficents, self.__subsistences, self.__weights)
+        string = '{}(name={}, functiontype={}, coefficents={}, subsistences={}, weights={})' 
+        return string.format(self.__class__.__name__, self.name, self.functiontype, self.__coefficents, self.__subsistences, self.__weights)
         
     def __len__(self): return len(self.parameters)
     def __init__(self, *args, subsistences={}, weights={}, functions={}, coefficents={}, **kwargs): 
         assert isinstance(subsistences, dict) and isinstance(weights, dict)
-        assert all([hasattr(self, attr) for attr in ('name', 'positivetype', 'negativetype',)])
+        assert all([hasattr(self, attr) for attr in ('name', 'functiontype',)])
         self.__subsistences = {parm:subsistences.get(parm, 0) for parm in self.parameters}
         self.__weights = {parm:weights.get(parm, 0) for parm in self.parameters}
         self.__functions = {parm:functions[parm] for parm in self.parameters if parm in functions}        
@@ -114,9 +120,10 @@ class UtilityFunction(ABC):
         w = np.array([self.__weights[parm] for parm in self.parameters])
         w = _normalize(w) if sum(w) > 0 else np.ones(w.shape) * (1/len(w))
         x = np.array([self.__functions[parm](*args, **kwargs) if parm in self.__functions.keys() else values[parm] for parm in self.parameters])
-        y = np.subtract(x, s)
-        if np.all(y > 0): u = UTILITY_FUNCTIONS[self.positivetype](y, w, *c)
-        else: u = UTILITY_FUNCTIONS[self.negativetype](np.minimum(y, 0), w, *c)
+        with warnings.catch_warnings():
+            warnings.filterwarnings('error')
+            try: u = UTILITY_FUNCTIONS[self.functiontype](np.subtract(x, s), w, *c)
+            except Warning: raise NumericalError(np.subtract(x, s))
         return u
 
     def derivative(self, filtration, *args, **kwargs):
@@ -128,18 +135,19 @@ class UtilityFunction(ABC):
         w = np.array([self.__weights[parm] for parm in self.parameters])
         w = _normalize(w) if sum(w) > 0 else np.ones(w.shape) * (1/len(w))
         x = np.array([self.__functions[parm](*args, **kwargs) if parm in self.__functions.keys() else values[parm] for parm in self.parameters])
-        y = np.subtract(x, s)
-        if np.all(y > 0): du = UTILITY_DERIVATIVES[self.positivetype](i, y, w, *c)
-        else: du = UTILITY_DERIVATIVES[self.negativetype](i, y, w, *c)
-        dy = self.__functions[filtration[0]].derivative(filtration[1:], *args, **kwargs) if len(filtration) > 1 else 1
-        return du * dy
+        with warnings.catch_warnings():
+            warnings.filterwarnings('error')
+            try: du = UTILITY_DERIVATIVES[self.functiontype](i, np.subtract(x, s), w, *c)
+            except Warning: raise NumericalError(np.subtract(x, s))
+        dx = self.__functions[filtration[0]].derivative(filtration[1:], *args, **kwargs) if len(filtration) > 1 else 1       
+        return du * dx
 
     @classmethod
-    def register(cls, name, positivetype, negativetype, *args, parameters, coefficents, **kwargs):
+    def register(cls, name, functiontype, *args, parameters, coefficents, **kwargs):
         if cls != UtilityFunction: raise NotImplementedError('{}.{}()'.format(cls.__name__, 'register'))      
         assert isinstance(parameters, (tuple, list)) and isinstance(coefficents, (tuple, list))
-        assert positivetype in UTILITY_FUNCTIONS.keys() and negativetype in UTILITY_FUNCTIONS.keys()       
-        attrs = dict(name=name, positivetype=positivetype, negativetype=negativetype, parameters=tuple(sorted(parameters)), coefficents=tuple(sorted(coefficents)))
+        assert functiontype in UTILITY_FUNCTIONS.keys()     
+        attrs = dict(name=name, functiontype=functiontype, parameters=tuple(sorted(parameters)), coefficents=tuple(sorted(coefficents)))
         def wrapper(subclass): return type(subclass.__name__, (subclass, cls), attrs)
         return wrapper
     
