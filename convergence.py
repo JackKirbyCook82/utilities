@@ -14,7 +14,7 @@ from utilities.dispatchers import clskey_singledispatcher as keydispatcher
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['History', 'MovingDampener', 'ErrorConverger']
+__all__ = ['History', 'DurationDampener', 'ErrorConverger', 'ConvergenceError']
 __copyright__ = "Copyright 2020, Jack Kirby Cook"
 __license__ = ""
 
@@ -27,74 +27,76 @@ _pad = lambda x, n, f: np.concatenate([_void(n), f(x, n)])
 _sma = lambda x, n: np.convolve(x, np.ones(n)/n, 'valid')
 _mmax = lambda x, n: np.array([np.amax(_window(x, n, i)) for i in np.arange(len(x)-n+1)])
 _mmin = lambda x, n: np.array([np.amin(_window(x, n, i)) for i in np.arange(len(x)-n+1)])
+_delta = lambda x: x[1:] - x[:-1]
+_direction = lambda x: _delta(x) / np.abs(_delta(x))
+_oscillation = lambda x: np.maximum(_direction(x)[1:] * _direction(x)[:-1], 0) * -1
 _error = lambda x, rtol, atol: np.allclose(x, np.zeros(x.shape), rtol=rtol, atol=atol) 
 _avgsqerr = lambda x: np.square(x).mean() ** 0.5
 _maxsqerr = lambda x: np.max(np.square(x)) ** 0.5
 _minsqerr = lambda x: np.min(np.square(x)) ** 0.5
 
 
-#class MovingDampener(Dampener):
-#    def __init__(self, *args, period, size, minimum, **kwargs): 
-#        assert 0 < minimum < 1 and 0 < size <= 1
-#        self.__period, self.__size, self.__minimum = period, size, minimum
-#    
-#    def __call__(self, x, *args, **kwargs): 
-#        if len(x) <= self.__period: return 1
-#        y = x - np.concatenate([_void(self.__period), _sma(x, self.__period)])
-#        z = y / abs(y)
-#        z = z[~np.isnan(z)]        
-#        assert all(abs(z) == 1) if len(z) > 0 else True
-#        try: dampener = 1 - (np.sum(z[1:] * z[:-1] < 0) / (len(z) - 1))
-#        except ZeroDivisionError: return 1
-#        return min([max([dampener * self.__size, self.__minimum]), 1]) 
-            
+class Dampener(ABC):
+    @abstractmethod
+    def execute(self, data): pass
+    def __call__(self, data): return self.execute(data) 
 
-class Dampener(ABC): pass
-class MovingDampener(Dampener): pass
+class DurationDampener(Dampener): 
+    def __init__(self, *args, period, size, **kwargs): 
+        assert isinstance(period, int) and period > 0
+        assert isinstance(size, float) and 0 < size < 1
+        self.__period, self.__size = period, size
+        
+    def execute(self, data): 
+        factors = np.floor((np.ones(data.shape[0]) * data.shape[-1]) / self.__period)
+        sizes = np.ones(data.shape[0]) * self.__size
+        return np.power(1 - sizes, factors)
+
+#class OscillationDampener(Dampener): 
+#    def __init__(self, *args, **kwargs): pass
+#    def execute(self, data): pass
 
 
+class ConvergenceError(Exception): pass
 class Converger(ABC): 
     @abstractmethod
     def converged(self): pass
     @abstractmethod
-    def value(self): pass
+    def limit(self): pass
     
     @keydispatcher
     def error(self, how): raise KeyError(how)
     @error.register('average', 'avg')
-    def error_average(self): return _avgsqerr(self.__errors)
+    def error_average(self): return _avgsqerr(self.errors) if self.active else None
     @error.register('maximum', 'max')
-    def error_maximum(self): return _maxsqerr(self.__errors)
+    def error_maximum(self): return _maxsqerr(self.errors) if self.active else None
     @error.register('minimum', 'min')
-    def error_minimum(self): return _minsqerr(self.__errors)
-                            
-    def __bool__(self): return self.converged
-    def __call__(self, errors, values): self.errors, self.values = errors, values
-    
-        
+    def error_minimum(self): return _minsqerr(self.errors) if self.active else None
+                
+    def __bool__(self): return self.converged() if self.active else False
+    def __len__(self): return self.values.shape[-1] if self.active else 0
+    def __call__(self, errors, values): self.errors, self.values = errors, values     
+
+    @property
+    def active(self): return hasattr(self, 'values') and hasattr(self, 'errors')
+    @property
+    def value(self): 
+        if not self or not self.active: raise ConvergenceError()
+        else: return self.limit()
+                
 class ErrorConverger(Converger): 
     def __init__(self, *args, rtol, atol, **kwargs): self.__rtol, self.__atol = rtol, atol
-    @property
-    def value(self): return self.values[:, -1]
-    @property
+    def limit(self): return self.values[:, -1]
     def converged(self): 
-        try: return _error(self.errors, self.__rtol, self.__atol)
-        except AttributeError: return False
-    
-    
-    
-class OscillationConverger(Converger): 
-    def __init__(self, *args, period, tolerance, **kwargs): self.__period, self.__tolerance = period, tolerance  
-    @property
-    def value(self): return np.average(np.apply_along_axis(_sma, 1, self.values, self.__period), axis=1)
-    @property
-    def converged(self): 
-        if self.values.shape[-1] < self.__period: return False
-        deltas = np.apply_along_axis(_mmax, 1, self.values, self.__period) - np.apply_along_axis(_mmin, 1, self.values, self.__period)
-        deltas = np.apply_along_axis(_divide, 1, deltas, np.ones(deltas.shape[-1]) * self.__tolerances)
-        return np.sum(np.floor(deltas)) == 0
+        if not self.active: return False
+        else: return _error(self.errors, self.__rtol, self.__atol)
 
+#class OscillationConverger(Converger):
+#    def __init__(self, *args, **kwargs): pass
+#    def limit(self): pass
+#    def converged(self): pass    
 
+    
 class History(object):
     @property
     def data(self): return self.__data
