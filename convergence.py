@@ -14,7 +14,7 @@ from utilities.dispatchers import clskey_singledispatcher as keydispatcher
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['History', 'DurationDampener', 'ErrorConverger', 'ConvergenceError']
+__all__ = ['History', 'DurationDampener', 'OscillationDampener', 'ErrorConverger', 'ConvergenceError', 'OscillationConverger']
 __copyright__ = "Copyright 2020, Jack Kirby Cook"
 __license__ = ""
 
@@ -24,13 +24,15 @@ _divide = lambda x, y: x / y
 _window = lambda x, n, i: x[i:i+n]
 _void = lambda n: np.ones(n-1) * np.NaN
 _pad = lambda x, n, f: np.concatenate([_void(n), f(x, n)])
+_delta = lambda x: x[1:] - x[:-1]
+_direction = lambda x: _delta(x) / np.abs(_delta(x))
+_trend = lambda x: np.sum(_direction(x)) / (len(x) - 1) 
+_error = lambda x, rtol, atol: np.allclose(x, np.zeros(x.shape), rtol=rtol, atol=atol) 
 _sma = lambda x, n: np.convolve(x, np.ones(n)/n, 'valid')
 _mmax = lambda x, n: np.array([np.amax(_window(x, n, i)) for i in np.arange(len(x)-n+1)])
 _mmin = lambda x, n: np.array([np.amin(_window(x, n, i)) for i in np.arange(len(x)-n+1)])
-_delta = lambda x: x[1:] - x[:-1]
-_direction = lambda x: _delta(x) / np.abs(_delta(x))
-_oscillation = lambda x: np.maximum(_direction(x)[1:] * _direction(x)[:-1], 0) * -1
-_error = lambda x, rtol, atol: np.allclose(x, np.zeros(x.shape), rtol=rtol, atol=atol) 
+_mtrend = lambda x, n: np.array([_trend(_window(x, n, i)) for i in np.arange(len(x)-n+1)])
+_ema = lambda x, n, s: (x[-1] * (s / (1 + n))) + (_ema(x[:-1], n, s) if len(x) > 1 else 0) * (1 - (s / (1 + n)))
 _avgsqerr = lambda x: np.square(x).mean() ** 0.5
 _maxsqerr = lambda x: np.max(np.square(x)) ** 0.5
 _minsqerr = lambda x: np.min(np.square(x)) ** 0.5
@@ -52,9 +54,18 @@ class DurationDampener(Dampener):
         sizes = np.ones(data.shape[0]) * self.__size
         return np.power(1 - sizes, factors)
 
-#class OscillationDampener(Dampener): 
-#    def __init__(self, *args, **kwargs): pass
-#    def execute(self, data): pass
+class OscillationDampener(Dampener): 
+    def __init__(self, *args, period, size, threshold, smoothing=2, **kwargs):
+        assert isinstance(period, int) and period > 0
+        assert isinstance(size, float) and 0 > size < 1
+        assert isinstance(threshold, float) and 0 <= threshold <= 1
+        self.__period, self.__size, self.__threshold, self.__smoothing = period, size, threshold, smoothing
+        
+    def execute(self, data): 
+        trends = np.floor(np.abs(np.apply_along_axis(_mtrend, 1, data, self.__period)) / self.__threshold)
+        oscillates = (np.maximum(trends, 1) - 1) * -1
+        factors = np.apply_along_axis(_ema, 1, oscillates, self.__period, self.__smoothing)
+        return np.apply_along_axis(lambda x: 1 - (1 - self.__size) * x, 1, factors)        
 
 
 class ConvergenceError(Exception): pass
@@ -92,7 +103,7 @@ class ErrorConverger(Converger):
         else: return _error(self.errors, self.__rtol, self.__atol)
 
 #class OscillationConverger(Converger):
-#    def __init__(self, *args, **kwargs): pass
+#   def __init__(self, *args, **kwargs): pass
 #    def limit(self): pass
 #    def converged(self): pass    
 
