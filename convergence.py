@@ -79,7 +79,9 @@ class ErrorConverger(Converger):
         else: return _error(self.errors, self.__rtol, self.__atol)
 
 class OscillationConverger(Converger):
-    def __init__(self, *args, period, tolerance, **kwargs): self.__period, self.__tolerance = period, tolerance
+    def __init__(self, *args, period, btol, ttol, otol, **kwargs): 
+        self.__period, self.__btol, self.__ttol, self.__otol = period, btol, ttol, otol
+    
     def limit(self): return np.average(np.apply_along_axis(_sma, 1, self.values[:, -self.__period:], self.__period), axis=1)
     def converged(self): 
         if not self.active or len(self) <= self.__period: return False
@@ -88,11 +90,18 @@ class OscillationConverger(Converger):
     def __bounded(self):
         xmax = np.apply_along_axis(np.max, 1, self.values[:, -self.__period:])
         xmin = np.apply_along_axis(np.min, 1, self.values[:, -self.__period:])
-        return np.all(np.maximum((xmax - xmin) - self.__tolerance, 0) == 0)
+        return np.all(np.maximum((xmax - xmin) - self.__btol, 0) == 0)
 
-#    def __trending(self): pass   
-#    def __oscillating(self): pass
+    def __trending(self): 
+        deltas = np.apply_along_axis(_delta, 1, self.values[:, -self.__period:])
+        trends = np.sum(deltas, axis=1) / (self.__period - 1)
+        return np.all(np.maximum(trends - self.__ttol, 0) != 0)
 
+    def __oscillating(self): 
+        drts = np.apply_along_axis(_drt, 1, self.values[:, -self.__period:])
+        oscillates = np.abs(np.sum(drts, axis=1)) / (self.__period - 1)
+        return np.all(np.maximum(oscillates - self.__otol, 0) == 0)
+        
     
 class History(object):
     @property
