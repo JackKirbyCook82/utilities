@@ -31,6 +31,7 @@ def concept(name, fields, function=_defaultfunction, fieldfunctions={}):
     functions = {field:fieldfunctions.get(field, function) for field in fields}
        
     def todict(self): return self._asdict()  
+    def __hash__(self): return hash(tuple([(field, hash(value),) for field, value in self.todict().items()]))
     def __repr__(self): 
         content = {key:(str(value) if isinstance(value, (str, Number)) else repr(value)) for key, value in self.todict().items()}
         return '{}({})'.format(self.__class__.__name__, ', '.join(['='.join([key, value]) for key, value in content.items()]))
