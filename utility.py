@@ -23,7 +23,7 @@ _normalize = lambda items: np.array(items) / np.sum(np.array(items))
 
 UTILITY_FUNCTIONS = {
     'cobbdouglas': lambda x, w, a, d, *args: (np.prod(np.power(x, w)) ** d) * a,
-    'ces': lambda x, w, a, d, p, *args: (np.sum(np.multiply(np.power(x, p), w)) **d) * a,
+    'ces': lambda x, w, a, d, p, *args: (np.sum(np.multiply(np.power(x, p), w)) ** (d/p)) * a,
     'linear': lambda x, w, a, *args: np.sum(np.multiply(x, w)) ** a,
     'expcobbdouglas': lambda x, w, a, d, *args: (np.prod(np.power(np.exp(x), w)) ** d) * a}
 UTILITY_DERIVATIVES = {
