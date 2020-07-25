@@ -67,13 +67,13 @@ class UtilityIndex(ABC):
         self.weights = {parm:weights.get(parm, 0) for parm in self.parameters}
  
     def __call__(self, *args, **kwargs): 
-        values = self.execute(*args, **kwargs)
-        assert isinstance(values, dict)
-        assert all([parm in values.keys() for parm in self.parameters])
+        v = self.execute(*args, **kwargs)
+        assert isinstance(v, dict)
+        assert all([parm in v.keys() for parm in self.parameters])
         t = np.array([self.tolerances[parm] for parm in self.parameters])
         w = np.array([self.weights[parm] for parm in self.parameters])
         w = _normalize(w) if sum(w) > 0 else np.ones(w.shape) * (1/len(w))
-        x = np.array([values[parm] for parm in self.parameters])
+        x = np.array([v[parm] for parm in self.parameters])
         return INDEX_FUNCTIONS[self.functiontype](x, w, t, self.amplitude)  
 
     @classmethod
@@ -114,12 +114,13 @@ class UtilityFunction(ABC):
         self.__coefficents = {coefficent:kwargs[coefficent] for coefficent in self.coefficents}         
         
     def __call__(self, *args, **kwargs):
-        values = self.execute(*args, **kwargs)
+        nestedkwargs = {parm:func(*args, **kwargs) for parm, func in self.__functions.items()}
+        x = self.execute(*args, **nestedkwargs, **kwargs)
+        x = np.array([x[parm] for parm in self.parameters])                
         c = [self.__coefficents[coefficent] for coefficent in self.coefficents]
         s = np.array([self.__subsistences[parm] for parm in self.parameters])
         w = np.array([self.__weights[parm] for parm in self.parameters])
         w = _normalize(w) if sum(w) > 0 else np.ones(w.shape) * (1/len(w))
-        x = np.array([self.__functions[parm](*args, **kwargs) if parm in self.__functions.keys() else values[parm] for parm in self.parameters])
         with warnings.catch_warnings():
             warnings.filterwarnings('error')
             try: u = UTILITY_FUNCTIONS[self.functiontype](np.subtract(x, s), w, *c)
@@ -128,13 +129,14 @@ class UtilityFunction(ABC):
 
     def derivative(self, filtration, *args, **kwargs):
         filtration = _aslist(filtration)
-        values = self.execute(*args, **kwargs)
+        nestedkwargs = {parm:func(*args, **kwargs) for parm, func in self.__functions.items()}
         i = self.parameters.index(filtration[0])
+        x = self.execute(*args, **nestedkwargs, **kwargs)
+        x = np.array([x[parm] for parm in self.parameters])                        
         c = [self.__coefficents[coefficent] for coefficent in self.coefficents]
         s = np.array([self.__subsistences[parm] for parm in self.parameters])
         w = np.array([self.__weights[parm] for parm in self.parameters])
-        w = _normalize(w) if sum(w) > 0 else np.ones(w.shape) * (1/len(w))
-        x = np.array([self.__functions[parm](*args, **kwargs) if parm in self.__functions.keys() else values[parm] for parm in self.parameters])
+        w = _normalize(w) if sum(w) > 0 else np.ones(w.shape) * (1/len(w)) 
         with warnings.catch_warnings():
             warnings.filterwarnings('error')
             try: du = UTILITY_DERIVATIVES[self.functiontype](i, np.subtract(x, s), w, *c)
