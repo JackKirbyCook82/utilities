@@ -11,11 +11,10 @@ import pandas as pd
 import numpy as np
 import xarray as xr
 import geopandas as gp
-from bs4 import BeautifulSoup as bs
 
 __version__ = "1.0.0"
 __author__ = "Jack Kirby Cook"
-__all__ = ['dataframe_fromjson', 'dataframe_fromhtml', 'dataframe_fromcsv', 'dataframe_fromxarray', 'dataframe_tofile', 'dataframe_fromfile', 'dataframe_parser']
+__all__ = ['dataframe_fromjson', 'dataframe_fromcsv', 'dataframe_fromxarray', 'dataframe_tofile', 'dataframe_fromfile', 'dataframe_parser']
 __copyright__ = "Copyright 2018, Jack Kirby Cook"
 __license__ = ""
 
@@ -29,11 +28,6 @@ def dataframe_fromjson(data, header=None, forceframe=True):
     else: 
         columns = data.pop(header)
         dataframe = pd.DataFrame(data, columns=columns)
-    return _forceframe(dataframe) if forceframe else dataframe
-
-def dataframe_fromhtml(data, tablenum=0, header=None, htmlparser='lxml', forceframe=True):
-    soup = bs(data, htmlparser)
-    dataframe = pd.read_html(str(soup.find_all('table')), flavor=htmlparser, header=header)[tablenum]
     return _forceframe(dataframe) if forceframe else dataframe
     
 def dataframe_fromcsv(data, header=None, forceframe=True):
