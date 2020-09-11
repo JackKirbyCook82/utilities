@@ -74,10 +74,3 @@ class SliceOrderedDict(ODict):
         return self
 
 
-class CallSliceOrderedDict(SliceOrderedDict):
-    def __call__(self, key):
-        def wrapper(value): 
-            self[key] = value
-            return value
-        return wrapper
-
