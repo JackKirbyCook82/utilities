@@ -43,8 +43,8 @@ class NumericalError(Exception): pass
 
 
 class UtilityIndex(ABC): 
-    def __init_subclass__(cls, functionname, functiontype, *args, parameters=[], coefficents=[], **kwargs):
-        super().__init_subclass__(**kwargs)
+    def __init_subclass__(cls, *args, functionname, functiontype, parameters=[], coefficents=[], **kwargs):
+        assert isinstance(functionname, str) and isinstance(functiontype=str)
         assert isinstance(parameters, (tuple, list)) and isinstance(coefficents, (tuple, list))
         assert functiontype in INDEX_FUNCTIONS.keys()
         setattr(cls, 'funcitonname', functionname)
@@ -88,7 +88,7 @@ class UtilityIndex(ABC):
     
 class UtilityFunction(ABC): 
     def __init_subclass__(cls, functionname, functiontype, *args, parameters=[], coefficents=[], **kwargs):
-        super().__init_subclass__(**kwargs)
+        assert isinstance(functionname, str) and isinstance(functiontype=str)
         assert isinstance(parameters, (tuple, list)) and isinstance(coefficents, (tuple, list))
         assert functiontype in UTILITY_FUNCTIONS.keys()
         setattr(cls, 'funcitonname', functionname)
