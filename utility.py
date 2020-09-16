@@ -43,11 +43,20 @@ class NumericalError(Exception): pass
 
 
 class UtilityIndex(ABC): 
-    @abstractmethod
-    def execute(self, *args, **kwargs): pass
+    def __init_subclass__(cls, functionname, functiontype, *args, parameters=[], coefficents=[], **kwargs):
+        super().__init_subclass__(**kwargs)
+        assert isinstance(parameters, (tuple, list)) and isinstance(coefficents, (tuple, list))
+        assert functiontype in INDEX_FUNCTIONS.keys()
+        setattr(cls, 'funcitonname', functionname)
+        setattr(cls, 'functiontype', functiontype)
+        setattr(cls, 'parameters', tuple(sorted(parameters)))
+        setattr(cls, 'coefficents', tuple(coefficents))      
+   
     @classmethod    
     @abstractmethod
-    def create(self, *args, **kwargs): pass
+    def create(self, *args, **kwargs): pass    
+    @abstractmethod
+    def execute(self, *args, **kwargs): pass
 
     @property
     def key(self): 
@@ -76,17 +85,17 @@ class UtilityIndex(ABC):
         x = np.array([v[parm] for parm in self.parameters])
         return INDEX_FUNCTIONS[self.functiontype](x, w, t, self.amplitude)  
 
-    @classmethod
-    def register(cls, functionname, functiontype, *args, parameters, **kargs):
-        if cls != UtilityIndex: raise NotImplementedError('{}.{}()'.format(cls.__name__, 'register'))      
-        assert isinstance(parameters, (tuple, list))
-        assert functiontype in INDEX_FUNCTIONS.keys()
-        attrs = dict(functionname=functionname, functiontype=functiontype, parameters=tuple(sorted(parameters)))
-        def wrapper(subclass): return type(subclass.__name__, (subclass, cls), attrs)
-        return wrapper
-  
     
 class UtilityFunction(ABC): 
+    def __init_subclass__(cls, functionname, functiontype, *args, parameters=[], coefficents=[], **kwargs):
+        super().__init_subclass__(**kwargs)
+        assert isinstance(parameters, (tuple, list)) and isinstance(coefficents, (tuple, list))
+        assert functiontype in UTILITY_FUNCTIONS.keys()
+        setattr(cls, 'funcitonname', functionname)
+        setattr(cls, 'functiontype', functiontype)
+        setattr(cls, 'parameters', tuple(sorted(parameters)))
+        setattr(cls, 'coefficents', tuple(coefficents))            
+
     @classmethod    
     @abstractmethod
     def create(self, *args, **kwargs): pass
@@ -143,19 +152,6 @@ class UtilityFunction(ABC):
             except Warning: raise NumericalError(np.subtract(x, s))
         dx = self.__functions[filtration[0]].derivative(filtration[1:], *args, **kwargs) if len(filtration) > 1 else 1       
         return du * dx
-
-    @classmethod
-    def register(cls, name, functiontype, *args, parameters, coefficents, **kwargs):
-        if cls != UtilityFunction: raise NotImplementedError('{}.{}()'.format(cls.__name__, 'register'))      
-        assert isinstance(parameters, (tuple, list)) and isinstance(coefficents, (tuple, list))
-        assert functiontype in UTILITY_FUNCTIONS.keys()     
-        attrs = dict(name=name, functiontype=functiontype, parameters=tuple(sorted(parameters)), coefficents=tuple(sorted(coefficents)))
-        def wrapper(subclass): return type(subclass.__name__, (subclass, cls), attrs)
-        return wrapper
-    
-
-
-
 
 
 
