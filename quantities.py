@@ -24,7 +24,7 @@ _filter = lambda items: (item for item in items if item is not None)
 
 def sametype(function):
     def wrapper(self, other):
-        if type(self) != type(other): raise TypeError(' != '.join([str(type(self)), str(type(other))]))
+        if type(self) != type(other): raise TypeError(' != '.join([str(type(self).__name__), str(type(other).__name__)]))
         return function(self, other)
     return wrapper   
 

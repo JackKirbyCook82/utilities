@@ -46,7 +46,7 @@ def dataframe_fromxarray(data):
         dataframe = series.to_frame().reset_index()      
     elif isinstance(data, xr.Dataset):
         dataframe = data.to_dataframe().reset_index()
-    else: raise TypeError(data)
+    else: raise TypeError(type(data).__name__)
     for key, value in data.attrs.items(): dataframe[key] = value
     return dataframe
 

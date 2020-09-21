@@ -35,17 +35,17 @@ class InputParser(object):
         for item in items:
             if isinstance(item, int): self.__inputArgs.pop(item)
             elif isinstance(item, str): self.__inputParms.pop(item)
-            else: raise TypeError(type(item))
+            else: raise TypeError(type(item).__name__)
 
     def __setitem__(self, item, value):
         if isinstance(item, int): self.__inputArgs.insert(item, value)
         elif isinstance(item, str): self.__inputParms[item] = value
-        else: raise TypeError(type(item)) 
+        else: raise TypeError(type(item).__name__) 
         
     def __getitem__(self, item):
         if isinstance(item, int): return self.__inputArgs[item] if -len(self.__inputArgs) <= item < len(self.__inputArgs) else None
         elif isinstance(item, str): return self.__inputParms.get(item, None)
-        else: raise TypeError(type(item))
+        else: raise TypeError(type(item).__name__)
 
     def __repr__(self): return "{}(assignproxy='{}', spaceproxy='{}')".format(self.__class__.__name__, self.__assignproxy, self.__spaceproxy)
     def __str__(self):   

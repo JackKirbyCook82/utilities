@@ -56,7 +56,7 @@ def concept(name, fields, function=_defaultfunction, fieldfunctions={}):
     def __getitem__(self, item): 
         if isinstance(item, (int, slice)): return super(Concept, self).__getitem__(item)
         elif isinstance(item, str): return getattr(self, item)
-        else: raise TypeError(type(item))
+        else: raise TypeError(type(item).__name__)
 
     setattr(Concept, '__getitem__', __getitem__)
     setattr(Concept, '__new__', __new__)

@@ -21,7 +21,7 @@ class SliceOrderedDict(ODict):
         if isinstance(key, str): return super().__getitem__(key)        
         elif isinstance(key, slice): return self.__readslice(key)
         elif isinstance(key, int): return self.__retrieve(key, False)
-        else: raise TypeError(type(key))
+        else: raise TypeError(type(key).__name__)
 
     def __readslice(self, key):
         start, stop = key.start, key.stop 
@@ -36,8 +36,8 @@ class SliceOrderedDict(ODict):
         return newinstance 
 
     def __readint(self, index):
-        if index >= 0: return self.__readslice( slice( index, index + 1 ) )
-        else: return self.__readslice( slice( len(self) + index, len(self) + index + 1 ) )
+        if index >= 0: return self.__readslice(slice(index, index + 1))
+        else: return self.__readslice(slice(len(self) + index, len(self) + index + 1))
 
     def __retrieve(self, key, pop):
         if abs(key + 1 if key < 0 else key) >= len(self): raise IndexError(key)
@@ -58,15 +58,15 @@ class SliceOrderedDict(ODict):
     def pop(self, key, default=None):
         if isinstance(key, str): return super().pop(key, default)
         elif isinstance(key, int): return self.__retrieve(key, pop=True)
-        else: raise TypeError(type(key))
+        else: raise TypeError(type(key).__name__)
 
     def get(self, key, default=None):
         if isinstance(key, str): return super().get(key, default)
         elif isinstance(key, int): return self.__retrieve(key, pop=False)
-        else: raise TypeError(type(key))
+        else: raise TypeError(type(key).__name__)
         
     def update(self, others, inplace=True):
-        if not isinstance(others, dict): raise TypeError(type(others))
+        if not isinstance(others, dict): raise TypeError(type(others).__name__)
         updated = [(key, others.pop(key, value)) for key, value in self.items()]
         added = [(key, value) for key, value in others.items()]
         if not inplace: return self.__class__(updated + added)
