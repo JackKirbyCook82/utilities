@@ -63,7 +63,8 @@ class Value_Segment(Segment):
 class Argument_Segment(Segment):
     delimiter = ', '
     
-    def __init__(self, *items): 
+    def __init__(self, items=[]):
+        assert isinstance(items, list)
         assert all([isinstance(item, (str, int, float, tuple, list)) for item in items])
         super().__init__(items)        
 
@@ -78,7 +79,8 @@ class Argument_Segment(Segment):
 class Keyword_Segment(Segment):   
     arg_delimiter, kw_delimiter = ', ', '='
     
-    def __init__(self, **items): 
+    def __init__(self, items={}): 
+        assert isinstance(items, dict)
         assert all([isinstance(item, (str, int, float, tuple, list)) for item in items.values()])
         super().__init__(items)            
 
