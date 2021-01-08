@@ -53,48 +53,24 @@ def dataframe_fromxarray(data):
 
 # FILE
 def dataframe_tofile(file, dataframe, index=True, header=True): 
-    try: 
-        dataframe = dataframe.replace(np.nan, '', regex=True)
-        dataframe.to_csv(file, index=index, header=header)
-        print('File Saving Success:')
-        print(str(file), '\n')                
-    except Exception as error:
-        print('File Saving Failure:')
-        print(str(file), '\n')                  
-        raise error     
+    dataframe = dataframe.replace(np.nan, '', regex=True)
+    dataframe.to_csv(file, index=index, header=header)      
     
 def dataframe_fromfile(file, index=None, header=0, forceframe=True):
-    try:         
-        dataframe = pd.read_csv(file, index_col=index, header=header).dropna(axis=0, how='all')
-        print('File Loading Success:')
-        print(str(file), '\n')                
-    except Exception as error:
-        print('File Loading Failure:')
-        print(str(file), '\n')                  
-        raise error 
+    directory, file = os.path.dirname(file), os.path.basename(file)
+    try: filename, filecomp, fileext = str(file).split('.')
+    except ValueError: filename, fileext = str(file).split('.') 
+    try: dataframe = pd.read_csv(os.path.join(directory, '.'.join([filename, filecomp])), compression=filecomp, index_col=index, header=header).dropna(axis=0, how='all')
+    except NameError: dataframe = pd.read_csv(os.path.join(directory, '.'.join([filename, fileext])), index_col=index, header=header).dropna(axis=0, how='all')                
     return _forceframe(dataframe) if forceframe else dataframe    
 
 def geodataframe_fromdir(directory):
-    try:
-        for file in os.listdir(directory):
-            if file.endswith(".shp"): geodataframe = gp.read_file(os.path.join(directory, file))
-        print('File Loading Success:')
-        print(str(directory), '\n')   
-    except Exception as error:
-        print('File Loading Failure:')
-        print(str(directory), '\n')         
-        raise error
+    for file in os.listdir(directory):
+        if file.endswith(".shp"): geodataframe = gp.read_file(os.path.join(directory, file))
     return geodataframe
         
 def geodataframe_fromfile(file):
-    try:
-        geodataframe = gp.read_file(file)
-        print('File Loading Success:')
-        print(str(file), '\n')   
-    except Exception as error:
-        print('File Loading Failure:')
-        print(str(file), '\n')         
-        raise error
+    geodataframe = gp.read_file(file)
     return geodataframe
 
 
