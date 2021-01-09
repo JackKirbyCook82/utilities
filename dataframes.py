@@ -8,7 +8,6 @@ Created on Fri Jun 22 2018
 
 import os
 import pandas as pd
-import numpy as np
 import xarray as xr
 import geopandas as gp
 
@@ -52,11 +51,18 @@ def dataframe_fromxarray(data):
 
 
 # FILE
-def dataframe_tofile(file, dataframe, index=True, header=True): 
-    dataframe = dataframe.replace(np.nan, '', regex=True)
-    dataframe.to_csv(file, index=index, header=header)      
+def dataframe_tofile(file, dataframe, index=False, header=True): 
+    assert str(file).endswith('.csv')
+    directory, file = os.path.dirname(file), os.path.basename(file)
+    try: filename, filecomp, fileext = str(file).split('.')
+    except ValueError: filename, fileext = str(file).split('.')
+    try: 
+        compression = dict(method=filecomp, archive_name='.'.join([filename, fileext]))
+        _forceframe(dataframe).to_csv(os.path.join(directory, '.'.join([filename, filecomp])), compression=compression, index=index, header=header)
+    except NameError: _forceframe(dataframe).to_csv(file=os.path.join(directory, '.'.join([filename, fileext])), index=index, header=header)      
     
 def dataframe_fromfile(file, index=None, header=0, forceframe=True):
+    assert str(file).endswith('.csv')
     directory, file = os.path.dirname(file), os.path.basename(file)
     try: filename, filecomp, fileext = str(file).split('.')
     except ValueError: filename, fileext = str(file).split('.') 
