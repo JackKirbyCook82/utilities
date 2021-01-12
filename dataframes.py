@@ -59,7 +59,7 @@ def dataframe_tofile(file, dataframe, index=False, header=True):
     try: 
         compression = dict(method=filecomp, archive_name='.'.join([filename, fileext]))
         _forceframe(dataframe).to_csv(os.path.join(directory, '.'.join([filename, filecomp])), compression=compression, index=index, header=header)
-    except NameError: _forceframe(dataframe).to_csv(file=os.path.join(directory, '.'.join([filename, fileext])), index=index, header=header)      
+    except NameError: _forceframe(dataframe).to_csv(os.path.join(directory, '.'.join([filename, fileext])), index=index, header=header)      
     
 def dataframe_fromfile(file, index=None, header=0, forceframe=True):
     assert str(file).endswith('.csv')
